@@ -78,7 +78,7 @@ CREATE TABLE ord_order (
     weight DECIMAL(10,2) COMMENT '货物重量（吨）',
     volume DECIMAL(10,2) COMMENT '货物体积（方）',
     status VARCHAR(20) DEFAULT 'PENDING' COMMENT '状态',
-    dispatch_id BIGINT COMMENT '关联调度单ID',
+    dispatch_id BIGINT COMMENT '关联调度单ID（允许为空，不建立外键约束，避免循环引用）',
     customer_id BIGINT COMMENT '下单客户ID',
     remark VARCHAR(500) COMMENT '备注',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
