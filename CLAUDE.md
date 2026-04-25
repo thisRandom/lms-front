@@ -39,47 +39,53 @@ Arco Design Vue is registered globally with component prefix `arco`. Components 
 
 ### Router
 `src/router/index.ts` - Vue Router config with route guards and layout system.
+`src/router/permission.ts` - Permission guard handling authentication and RBAC.
 
 Route meta fields:
 - `requiresAuth` - whether the route needs login authentication
 - `locale` - menu display name
 - `icon` - menu icon
-- `permissions` - required permissions array (e.g. `['user:view']`)
-- `roles` - accessible roles array (e.g. `['ADMIN', 'DISPATCHER']`)
+- `roles` - accessible roles array (e.g. `['admin', 'manager']`) or `['*']` for all roles
 
 Route patterns:
 - `/login` - public login page
 - `/dashboard` - layout route with children (all require auth)
-- `/:pathMatch(.*)*` - catch-all redirects to `/login`
+- `/404` - error page
+- `/:pathMatch(.*)*` - catch-all redirects to `/404`
 
-Login guard: redirect to `/login` if `requiresAuth: true` and no token in localStorage.
+Login guard: redirect to `/login` if `requiresAuth: true` and no token in localStorage. Handles token refresh on page reload.
 
 ### Permission System
-`src/types/permission.ts` - Type definitions (UserInfo, RoleCode, MenuItem)
-`src/stores/user.ts` - User state store with permission getters (hasPermission, hasAnyPermission, hasRole)
-`src/hooks/usePermission.ts` - Composition function for permission checks
-`src/directives/permission.ts` - `v-permission` directive to hide elements
+`src/stores/types.ts` - Type definitions (UserState, RoleType)
+`src/stores/user.ts` - User state store with login/logout actions and fetchUserInfo
+`src/utils/auth.ts` - Token management (getToken, setToken, clearToken, isLogin)
 
-Role codes: `ADMIN`, `DISPATCHER`, `DRIVER`, `CUSTOMER`
+Role codes: `ADMIN`, `DISPATCHER`, `DRIVER`, `CUSTOMER`, `ERROR` (defined in `stores/types.ts`)
 
-Permission format: `module:action` (e.g. `user:view`, `order:add`, `vehicle:edit`)
+### API Layer
+`src/utils/request.ts` - Axios instance with interceptors, handles Bearer token injection and error responses
+`src/api/user.ts` - User API calls (login, logout, getUserInfo, updateUserInfo)
+
+Backend proxy: `/api` requests are proxied to `http://10.17.4.55:8090` (configured in vite.config.ts)
 
 ### Views
-`src/views/` - page components:
-- `login/` - login page
-- `dashboard/` - dashboard home page
-- `user/` - user management (ADMIN only)
-- `vehicle/` - vehicle management
-- `order/` - order management
-- `dispatch/` - dispatch management
-- `location/` - location tracking
-- `settings/` - personal settings (all roles)
+`src/views/` - page components (flat structure, not subdirectories):
+- `loginView.vue` - login page
+- `dashboard.vue` - dashboard home page
+- `userManage.vue` - user management
+- `vehicleManage.vue` - vehicle management
+- `orderManage.vue` - order management
+- `dispatchManage.vue` - dispatch management
+- `locationManage.vue` - location tracking
+- `userSetting.vue` - personal settings (all roles)
+- `error/404.vue` - 404 error page
 
 ### Layouts
 `src/layouts/default.vue` - main layout with Arco-styled sidebar menu and header. Menu items are filtered by user role.
 
 ### Stores
-`src/stores/user.ts` - user state store (replaces placeholder counter.ts)
+`src/stores/user.ts` - user state store with role-based access
+`src/stores/types.ts` - TypeScript types for user state
 
 ### Alias
 `@` resolves to `src/`, so imports can use `@/stores/`, `@/router/`, etc.

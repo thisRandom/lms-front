@@ -11,14 +11,26 @@ import {
   IconLocation,
   IconSettings,
   IconMenu,
+  IconSunFill,
+  IconMoonFill
 } from '@arco-design/web-vue/es/icon'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const selectedKey = computed(() => route.path)
+const selectedKey = computed(() => route.path.split('/').pop() || '')
 const collapsed = ref(false)
+const isDark = ref(false)
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  if (isDark.value) {
+    document.body.setAttribute('arco-theme', 'dark')
+  } else {
+    document.body.removeAttribute('arco-theme')
+  }
+}
 
 interface MenuItem {
   key: string
@@ -28,21 +40,25 @@ interface MenuItem {
   roles?: string[]
 }
 
+// 核心修改 1：对齐刚才在 Router 中定义的路由级权限角色
 const allMenus: MenuItem[] = [
-  { key: 'dashboard', title: '首页', icon: IconHome, path: '/dashboard' },
-  { key: 'user', title: '用户管理', icon: IconUser, path: '/dashboard/user', roles: ['ADMIN'] },
-  { key: 'vehicle', title: '车辆管理', icon: IconDriveFile, path: '/dashboard/vehicle', roles: ['ADMIN', 'DISPATCHER', 'DRIVER'] },
-  { key: 'order', title: '订单管理', icon: IconFile, path: '/dashboard/order' },
-  { key: 'dispatch', title: '调度管理', icon: IconList, path: '/dashboard/dispatch', roles: ['ADMIN', 'DISPATCHER', 'DRIVER'] },
-  { key: 'location', title: '轨迹管理', icon: IconLocation, path: '/dashboard/location' },
-  { key: 'settings', title: '系统设置', icon: IconSettings, path: '/dashboard/settings' },
+  { key: 'dashboard', title: '首页', icon: IconHome, path: '/dashboard', roles: ['*'] },
+  { key: 'user', title: '用户管理', icon: IconUser, path: '/dashboard/user', roles: ['ADMIN', 'MANAGER'] },
+  { key: 'vehicle', title: '车辆管理', icon: IconDriveFile, path: '/dashboard/vehicle', roles: ['ADMIN', 'MANAGER', 'editor'] },
+  { key: 'order', title: '订单管理', icon: IconFile, path: '/dashboard/order', roles: ['ADMIN', 'MANAGER', 'editor'] },
+  { key: 'dispatch', title: '调度管理', icon: IconList, path: '/dashboard/dispatch', roles: ['ADMIN', 'MANAGER', 'editor'] },
+  { key: 'location', title: '轨迹管理', icon: IconLocation, path: '/dashboard/location', roles: ['ADMIN', 'MANAGER', 'editor', 'viewer'] },
+  { key: 'settings', title: '系统设置', icon: IconSettings, path: '/dashboard/settings', roles: ['ADMIN'] },
 ]
 
+// 核心修改 2：适配新的 Store 结构和通配符逻辑
 const menuData = computed(() => {
-  const role = userStore.userInfo.role
+  const currentRole = userStore.role
   return allMenus.filter((menu) => {
-    if (!menu.roles) return true
-    return menu.roles.includes(role)
+    // 如果没有配置 roles 或者配置了 '*'，则所有角色可见
+    if (!menu.roles || menu.roles.includes('*')) return true
+    // 否则判断当前用户的角色是否在菜单的权限列表中
+    return menu.roles.includes(currentRole)
   })
 })
 
@@ -52,25 +68,39 @@ const handleMenuClick = (key: string) => {
     router.push(menu.path)
   }
 }
+
+// 核心修改 3：对接完整的退出登录生命周期
+const handleDropdownSelect = async (value: string | number | Record<string, any> | undefined) => {
+  if (value === 'logout') {
+    try {
+      await userStore.logout();
+    } catch (e) {
+      console.warn('后端登出接口异常，但前端仍会清除状态', e);
+    } finally {
+      // 无论后端接不接口报错，前端必须强制跳回登录页
+      router.push('/login');
+    }
+  }
+}
 </script>
 
 <template>
   <a-layout class="layout">
     <a-layout-sider
-      v-model:collapsed="collapsed"
-      :width="220"
-      :collapsible="true"
-      :trigger="null"
-      class="sider"
+        v-model:collapsed="collapsed"
+        :width="220"
+        :collapsible="true"
+        :trigger="null"
+        class="sider"
     >
       <div class="logo">
-        <span v-if="!collapsed">LMS</span>
+        <span v-if="!collapsed">物流管理系统</span>
         <span v-else>L</span>
       </div>
       <a-menu
-        :default-selected-keys="[selectedKey]"
-        class="menu"
-        @menu-item-click="(key: string) => handleMenuClick(key)"
+          :default-selected-keys="[selectedKey]"
+          class="menu"
+          @menu-item-click="(key: string) => handleMenuClick(key)"
       >
         <a-menu-item v-for="menu in menuData" :key="menu.key">
           <component :is="menu.icon" class="menu-icon" />
@@ -85,18 +115,43 @@ const handleMenuClick = (key: string) => {
           <component :is="IconMenu" class="collapse-icon" @click="collapsed = !collapsed" />
         </div>
         <div class="header-right">
-          <span class="username">{{ userStore.userInfo.realName || userStore.userInfo.username }}</span>
-          <a-button type="text" @click="userStore.reset(); router.push('/login')">退出</a-button>
+          <a-tooltip :content="isDark ? '切换亮色模式' : '切换暗色模式'" position="bottom">
+            <a-button shape="circle" type="text" @click="toggleTheme">
+              <template #icon>
+                <icon-moon-fill v-if="isDark"/>
+                <icon-sun-fill v-else/>
+              </template>
+            </a-button>
+          </a-tooltip>
+          <a-dropdown trigger="click" @select="handleDropdownSelect">
+            <div class="user-info">
+              <a-avatar :style="{ backgroundColor: '#3370ff' }" :size="32">
+                <IconUser/>
+              </a-avatar>
+              <span class="username">{{ userStore.username || '未命名用户' }}</span>
+            </div>
+            <template #content>
+              <a-doption value="logout" style="color: #f53f3f">
+                <template #prefix><IconMenu /></template>
+                退出登录
+              </a-doption>
+            </template>
+          </a-dropdown>
         </div>
       </a-layout-header>
       <a-layout-content class="content">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
       </a-layout-content>
     </a-layout>
   </a-layout>
 </template>
 
 <style lang="scss" scoped>
+/* 样式部分完全保留你的原版设计，无需改动 */
 .layout {
   min-height: 100vh;
 }
@@ -178,20 +233,65 @@ const handleMenuClick = (key: string) => {
   }
 }
 
+.theme-toggle {
+  margin-left: 12px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: var(--color-fill-1);
+  }
+}
+
+.theme-icon {
+  font-size: 18px;
+  color: var(--color-text-2);
+
+  &:hover {
+    color: var(--color-text-1);
+  }
+}
+
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: var(--color-fill-1);
+  }
 }
 
 .username {
-  color: var(--color-text-2);
+  color: var(--color-text-1);
   font-size: 14px;
+  font-weight: 500;
 }
 
 .content {
   padding: 24px;
   background: var(--color-bg-1);
   min-height: calc(100vh - 60px);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

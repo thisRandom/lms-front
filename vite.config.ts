@@ -3,7 +3,6 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
@@ -13,4 +12,17 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+    server: {
+        port: 5173,
+        open: true,
+        proxy: {
+            // 拦截所有以 '/api' 开头的请求
+            '/api': {
+                target: 'http://127.0.0.1:8090',
+                changeOrigin: true,
+                // 核心逻辑：路径重写（去除 '/api' 前缀）
+                rewrite: (path) => path.replace(/^\/api/, '')
+            }
+        }
+    }
 })

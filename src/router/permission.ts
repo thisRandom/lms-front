@@ -1,0 +1,75 @@
+import type { Router } from 'vue-router';
+import { useUserStore } from '@/stores/user.ts';
+import { getToken } from '@/utils/auth';
+import { Message } from '@arco-design/web-vue';
+
+// 1. 定义白名单：不需要登录就可以访问的路径
+const whiteList = ['/login', '/404'];
+
+export default function setupPermissionGuard(router: Router) {
+    router.beforeEach(async (to, from, next) => {
+        // 获取持久化的 Token 和内存中的状态
+        const token = getToken();
+        const userStore = useUserStore();
+
+// ================== 情况 A：用户已登录 (有 Token) ==================
+        if (token) {
+            // 1. 如果用户已经登录，却还要去访问登录页，直接把他踹回首页
+            if (to.path === '/login') {
+                next({ path: '/dashboard' });
+                return;
+            }
+
+            // 2. 处理 F5 刷新导致 Pinia 角色丢失的问题
+            // 核心修复：增加对 'ERROR' 初始值的判断
+            if (!userStore.role || userStore.role === 'ERROR') {
+                try {
+                    // 重新拉取用户信息
+                    await userStore.fetchUserInfo();
+
+                    // 确保动态路由等逻辑加载完毕，使用 replace 防止产生无用的历史记录
+                    next({ ...to, replace: true });
+                    return;
+                } catch (error) {
+                    // 如果拉取失败（比如 Token 在后端过期了），清除前端缓存并跳回登录页
+                    console.error('状态恢复失败:', error);
+                    Message.error('登录状态已失效，请重新登录');
+                    userStore.resetInfo(); // 重置状态并清空 Token
+                    next(`/login?redirect=${to.path}`);
+                    return;
+                }
+            }
+
+            // 3. RBAC 权限比对逻辑
+            // 从目标路由的 meta 中读取允许访问的角色列表
+            const requiredRoles = (to.meta.roles as string[]) || [];
+
+            // 如果没有配置 roles，或者配置了 '*'，说明该页面不限制角色，直接放行
+            if (requiredRoles.length === 0 || requiredRoles.includes('*')) {
+                next();
+                return;
+            }
+
+            // 检查当前用户的角色是否在允许的列表中
+            if (requiredRoles.includes(userStore.role)) {
+                next(); // 匹配成功，放行！
+                return;
+            } else {
+                // 核心修复：匹配失败，必须要有一个结局，把他踢到无权限页面
+                console.warn(`越权访问拦截: 需要 ${requiredRoles}, 当前是 ${userStore.role}`);
+                next('/403');
+                return;
+            }
+        }
+        // ================== 情况 B：用户未登录 (无 Token) ==================
+        else {
+            if (whiteList.includes(to.path)) {
+                next(); // 如果要去的是白名单页面，直接放行
+            } else {
+                // 试图访问受保护的页面，打回登录页，并把原本想去的路径通过 URL 参数带过去
+                // 这样用户登录成功后，可以直接跳回他原来想看的页面（极其加分的用户体验细节）
+                next(`/login?redirect=${to.path}`);
+            }
+        }
+    });
+}

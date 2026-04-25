@@ -1,104 +1,94 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { useUserStore } from '@/stores/user'
+import setupPermissionGuard from './permission'
+
 
 const routes: RouteRecordRaw[] = [
-  {
-    path: '/login',
-    name: 'login',
-    component: () => import('@/views/login/index.vue'),
-    meta: { requiresAuth: false },
-  },
-  {
-    path: '/',
-    redirect: '/dashboard',
-  },
-  {
-    path: '/dashboard',
-    component: () => import('@/layouts/default.vue'),
-    meta: { requiresAuth: true },
-    children: [
-      {
-        path: '',
-        name: 'dashboard-home',
-        component: () => import('@/views/dashboard/index.vue'),
-        meta: { requiresAuth: true, locale: '首页', icon: 'icon-home' },
-      },
-      {
-        path: 'user',
-        name: 'user',
-        component: () => import('@/views/user/index.vue'),
-        meta: { requiresAuth: true, locale: '用户管理', icon: 'icon-user', permissions: ['user:view'] },
-      },
-      {
-        path: 'vehicle',
-        name: 'vehicle',
-        component: () => import('@/views/vehicle/index.vue'),
-        meta: { requiresAuth: true, locale: '车辆管理', icon: 'icon-truck', permissions: ['vehicle:view'] },
-      },
-      {
-        path: 'order',
-        name: 'order',
-        component: () => import('@/views/order/index.vue'),
-        meta: { requiresAuth: true, locale: '订单管理', icon: 'icon-document', permissions: ['order:view'] },
-      },
-      {
-        path: 'dispatch',
-        name: 'dispatch',
-        component: () => import('@/views/dispatch/index.vue'),
-        meta: { requiresAuth: true, locale: '调度管理', icon: 'icon-list', permissions: ['dispatch:view'] },
-      },
-      {
-        path: 'location',
-        name: 'location',
-        component: () => import('@/views/location/index.vue'),
-        meta: { requiresAuth: true, locale: '轨迹管理', icon: 'icon-location', permissions: ['location:query'] },
-      },
-      {
-        path: 'settings',
-        name: 'settings',
-        component: () => import('@/views/settings/index.vue'),
-        meta: { requiresAuth: true, locale: '系统设置', icon: 'icon-settings' },
-      },
-    ],
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/login',
-  },
+    {
+        path: '/login',
+        name: 'login',
+        component: () => import('@/views/loginView.vue'),
+        meta: { requiresAuth: false },
+    },
+    {
+        path: '/',
+        redirect: '/dashboard',
+    },
+    {
+        path: '/dashboard',
+        component: () => import('@/layouts/default.vue'),
+        meta: { requiresAuth: true },
+        children: [
+            {
+                path: '',
+                name: 'dashboard-home',
+                component: () => import('@/views/dashboard.vue'),
+                // 所有角色均可访问首页，使用 '*' 或者不写 roles
+                meta: { requiresAuth: true, locale: '首页', icon: 'icon-home', roles: ['*'] },
+            },
+            {
+                path: 'user',
+                name: 'user',
+                component: () => import('@/views/userManage.vue'),
+                // 假设：用户管理极其重要，只有 admin 和 manager 能访问
+                meta: { requiresAuth: true, locale: '用户管理', icon: 'icon-user', roles: ['ADMIN', 'DISPATCHER'] },
+            },
+            {
+                path: 'vehicle',
+                name: 'vehicle',
+                component: () => import('@/views/vehicleManage.vue'),
+                // 假设：车辆管理允许 admin, manager, editor 访问
+                meta: { requiresAuth: true, locale: '车辆管理', icon: 'icon-truck', roles: ['ADMIN', 'DISPATCHER', 'editor'] },
+            },
+            {
+                path: 'order',
+                name: 'order',
+                component: () => import('@/views/orderManage.vue'),
+                meta: { requiresAuth: true, locale: '订单管理', icon: 'icon-document', roles: ['ADMIN', 'DISPATCHER', 'editor'] },
+            },
+            {
+                path: 'dispatch',
+                name: 'dispatch',
+                component: () => import('@/views/dispatchManage.vue'),
+                meta: { requiresAuth: true, locale: '调度管理', icon: 'icon-list', roles: ['ADMIN', 'DISPATCHER', 'editor'] },
+            },
+            {
+                path: 'location',
+                name: 'location',
+                component: () => import('@/views/locationManage.vue'),
+                // 假设：轨迹所有人都能看 (或者明确列出全部四种角色)
+                meta: { requiresAuth: true, locale: '轨迹管理', icon: 'icon-location', roles: ['ADMIN', 'manager', 'editor', 'viewer'] },
+            },
+            {
+                path: 'settings',
+                name: 'settings',
+                component: () => import('@/views/userSetting.vue'),
+                // 假设：系统设置仅限超管
+                meta: { requiresAuth: true, locale: '系统设置', icon: 'icon-settings', roles: ['ADMIN'] },
+            },
+        ],
+    },
+    // ================= 补充异常处理页面 =================
+    {
+        path: '/404',
+        name: 'Error404',
+        // 提示：你需要在 views 目录下建一个 error/404.vue 页面
+        component: () => import('@/views/error/404.vue'),
+        meta: { requiresAuth: false },
+    },
+    {
+        // Vue3 Router 的 404 捕获写法 (替换掉原来的直接 redirect)
+        path: '/:pathMatch(.*)*',
+        redirect: '/404',
+    },
 ]
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
+    history: createWebHistory(import.meta.env.BASE_URL),
+    routes,
 })
 
-router.beforeEach((to) => {
-  const userStore = useUserStore()
-  const token = localStorage.getItem('token')
-
-  // 公开路由直接放行
-  if (!to.meta.requiresAuth) {
-    if (to.path === '/login' && token && userStore.userInfo.username) {
-      return '/dashboard'
-    }
-    return true
-  }
-
-  // 需要登录但无 token
-  if (!token) {
-    return '/login'
-  }
-
-  // 检查路由权限
-  const requiredPermissions = to.meta.permissions as string[] | undefined
-  if (requiredPermissions?.length) {
-    if (!userStore.hasAnyPermission(requiredPermissions)) {
-      return '/dashboard'
-    }
-  }
-
-  return true
-})
+// === 核心：挂载全局权限守卫 ===
+setupPermissionGuard(router)
 
 export default router
