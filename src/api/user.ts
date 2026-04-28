@@ -34,6 +34,11 @@ export function login(data: { username: string; password: string; code: string; 
     return request.post<any, HttpResponse>('/auth/login', data);
 }
 
+// 修改密码接口（2.4）
+export function updatePassword(oldPassword: string, newPassword: string) {
+    return request.put<any, HttpResponse>('/auth/password', { oldPassword, newPassword });
+}
+
 // 登出接口
 export function Logout() {
     return request.post<any, HttpResponse>('/auth/logout', null);

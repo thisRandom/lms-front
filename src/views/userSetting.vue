@@ -4,6 +4,7 @@ import { useUserStore } from '@/stores/user'
 import { Message } from '@arco-design/web-vue'
 import { IconPhone, IconUser, IconLock, IconSafe } from '@arco-design/web-vue/es/icon'
 import { encryptPassword } from '@/utils/crypto'
+import { updatePassword } from '@/api/user'
 
 const userStore = useUserStore()
 
@@ -78,13 +79,10 @@ const handlePwdSubmit = async ({ errors }: any) => {
 
   pwdLoading.value = true
   try {
-    const payload = {
-      oldPassword: encryptPassword(pwdForm.oldPassword),
-      newPassword: encryptPassword(pwdForm.newPassword)
-    }
-
-    console.log('发给后端的加密密码载荷:', payload)
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await updatePassword(
+      encryptPassword(pwdForm.oldPassword),
+      encryptPassword(pwdForm.newPassword)
+    )
 
     Message.success('密码修改成功，请重新登录')
     await userStore.logout()
