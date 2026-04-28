@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { Message } from '@arco-design/web-vue'
 import { IconPhone, IconUser, IconLock, IconSafe } from '@arco-design/web-vue/es/icon'
@@ -13,12 +13,12 @@ const profileFormRef = ref()
 const profileLoading = ref(false)
 
 const profileForm = reactive({
-  username: userStore.username || '',
+  realName: '',
   phone: '',
 })
 
 const profileRules = {
-  username: [{ required: true, message: '姓名不能为空' }],
+  realName: [{ required: true, message: '姓名不能为空' }],
   phone: [
     { required: false },
     { match: /^1[3-9]\d{9}$/, message: '请输入正确的11位手机号格式' }
@@ -30,8 +30,10 @@ const handleProfileSubmit = async ({ errors, values }: any) => {
 
   profileLoading.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 800))
-    userStore.setInfo({ username: values.username })
+    await userStore.updateProfile({
+      realName: profileForm.realName,
+      phone: profileForm.phone,
+    })
     Message.success('个人资料已成功更新')
   } catch (error) {
     console.error('更新失败', error)
@@ -39,6 +41,11 @@ const handleProfileSubmit = async ({ errors, values }: any) => {
     profileLoading.value = false
   }
 }
+
+onMounted(() => {
+  profileForm.realName = userStore.realName || ''
+  profileForm.phone = userStore.phone || ''
+})
 
 // === 2. 修改密码表单逻辑 ===
 const pwdFormRef = ref()
@@ -129,13 +136,13 @@ const handlePwdSubmit = async ({ errors }: any) => {
                 layout="vertical"
                 class="form-container"
             >
-              <a-form-item field="username" label="真实姓名/昵称">
-                <a-input v-model="profileForm.username" placeholder="请输入姓名" size="large">
+              <a-form-item field="realName" label="姓名">
+                <a-input v-model="profileForm.realName" placeholder="请输入姓名" size="large">
                   <template #prefix><icon-user /></template>
                 </a-input>
               </a-form-item>
 
-              <a-form-item field="phone" label="联系手机">
+              <a-form-item field="phone" label="手机号">
                 <a-input v-model="profileForm.phone" placeholder="请输入手机号" size="large">
                   <template #prefix><icon-phone /></template>
                 </a-input>

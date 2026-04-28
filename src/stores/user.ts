@@ -34,7 +34,7 @@ export const useUserStore = defineStore('user', {
                 // 解构出后端返回的数据，增加对 expireTime 的解构
                 const { token, expireTime, user } = res.data;
 
-                const { role, username, realName, avatar } = user;
+                const { role, username, realName, phone } = user;
 
                 setToken(token); // 存入 localStorage
 
@@ -43,6 +43,8 @@ export const useUserStore = defineStore('user', {
                     token,
                     role: role as RoleType,
                     username,
+                    realName,
+                    phone,
                     expireTime: expireTime || 0,
                     isLoggedIn: true,
                 });
@@ -60,16 +62,12 @@ export const useUserStore = defineStore('user', {
         async updateProfile(data: Partial<UserState>) {
             try {
                 // 1. 发起后端请求
-                const res = await updateUserInfo(data);
+                await updateUserInfo(data);
 
-                // 2. 请求成功后，将修改后的数据同步到 Pinia
-                // 注意：这里建议使用后端返回的最新数据 res.data 来更新，
-                // 也可以直接用传入的参数 data 来更新。
-                const updatedData = res.data || data;
+                // 2. 请求成功后，重新调用 /auth/current 获取最新用户信息
+                await this.fetchUserInfo();
 
-                this.setInfo(updatedData);
-
-                return res; // 返回结果供组件层处理（如显示成功提示）
+                return; // 返回结果供组件层处理（如显示成功提示）
             } catch (err) {
                 // 如果后端校验失败（如昵称重复），错误会被 Axios 拦截器捕获
                 throw err;
@@ -78,11 +76,13 @@ export const useUserStore = defineStore('user', {
         async fetchUserInfo() {
             try {
                 const res = await getUserInfo();
-                const { role, username } = res.data;
+                const { role, username, realName, phone } = res.data;
 
                 this.setInfo({
                     role: role as RoleType,
                     username,
+                    realName,
+                    phone,
                     isLoggedIn: true,
                 });
             } catch (err) {

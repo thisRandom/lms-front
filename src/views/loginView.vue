@@ -46,6 +46,7 @@ const handleSubmit = async ({ errors, values }: any) => {
 
   } catch (error) {
     console.error('登录失败', error)
+    form.captcha = ''
     handleRefreshCaptcha()
   } finally {
     loading.value = false
