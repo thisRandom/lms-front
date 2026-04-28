@@ -30,8 +30,7 @@ export interface UserListResponse {
 }
 
 // 登录接口定义
-// 注意：因为我们在响应拦截器中已经做了解包 (直接返回 res)，所以这里的返回类型直接是 HttpResponse
-export function login(data: any) {
+export function login(data: { username: string; password: string; code: string; uuid: string }) {
     return request.post<any, HttpResponse>('/auth/login', data);
 }
 

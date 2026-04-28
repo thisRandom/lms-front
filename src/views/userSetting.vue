@@ -172,13 +172,13 @@ const handlePwdSubmit = async ({ errors }: any) => {
                 class="form-container"
             >
               <a-form-item field="oldPassword" label="当前密码">
-                <a-input-password v-model="pwdForm.newPassword" placeholder="8-16位，含大小写/数字/符号至少三种" size="large">
+                <a-input-password v-model="pwdForm.oldPassword" placeholder="请输入当前密码" size="large">
                   <template #prefix><icon-lock /></template>
                 </a-input-password>
               </a-form-item>
 
               <a-form-item field="newPassword" label="新密码">
-                <a-input-password v-model="pwdForm.newPassword" placeholder="设置新的密码 (6-20位)" size="large">
+                <a-input-password v-model="pwdForm.newPassword" placeholder="8-16位，含大小写/数字/符号至少三种" size="large">
                   <template #prefix><icon-lock /></template>
                 </a-input-password>
               </a-form-item>

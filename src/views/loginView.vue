@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import axios from 'axios'
 import { useUserStore } from '@/stores/user'
 import { IconUser, IconLock } from '@arco-design/web-vue/es/icon'
 import { encryptPassword } from '@/utils/crypto'
@@ -12,11 +13,16 @@ const userStore = useUserStore()
 const form = reactive({
   username: '',
   password: '',
+  captcha: '',
 })
+
+const captchaUuid = ref('')
+const captchaImgUrl = ref('')
 
 const rules = {
   username: [{ required: true, message: '请输入用户名' }],
   password: [{ required: true, message: '请输入密码' }],
+  captcha: [{ required: true, message: '请输入验证码' }],
 }
 
 const loading = ref(false)
@@ -26,14 +32,13 @@ const handleSubmit = async ({ errors, values }: any) => {
 
   loading.value = true
   try {
-    // 组装一个新的提交对象，不污染绑定的表单数据
     const loginPayload = {
       username: form.username,
-      // 核心：在这里将明文密码替换为加密后的密文
-      password: encryptPassword(form.password)
+      password: encryptPassword(form.password),
+      code: form.captcha.toLowerCase(),
+      uuid: captchaUuid.value,
     }
 
-    // 将加密后的 payload 传给 store
     await userStore.login(loginPayload)
 
     const redirect = route.query.redirect as string
@@ -41,10 +46,26 @@ const handleSubmit = async ({ errors, values }: any) => {
 
   } catch (error) {
     console.error('登录失败', error)
+    handleRefreshCaptcha()
   } finally {
     loading.value = false
   }
 }
+
+const handleRefreshCaptcha = async () => {
+  try {
+    const res = await axios.get('/api/captcha', { responseType: 'blob' });
+    const uuid = res.headers['captcha-uuid'];
+    if (uuid) captchaUuid.value = uuid;
+    captchaImgUrl.value = URL.createObjectURL(res.data);
+  } catch (e) {
+    console.error('获取验证码失败', e);
+  }
+}
+
+onMounted(() => {
+  handleRefreshCaptcha()
+})
 
 </script>
 
@@ -85,6 +106,30 @@ const handleSubmit = async ({ errors, values }: any) => {
               <icon-lock />
             </template>
           </a-input-password>
+        </a-form-item>
+
+        <a-form-item field="captcha" label="验证码" hide-asterisk>
+          <div class="captcha-wrapper">
+            <a-input
+                v-model="form.captcha"
+                placeholder="请输入验证码"
+                allow-clear
+                size="large"
+                class="custom-input"
+            >
+              <template #prefix>
+                <icon-lock />
+              </template>
+            </a-input>
+            <img
+                v-if="captchaImgUrl"
+                :src="captchaImgUrl"
+                alt="验证码"
+                class="captcha-img"
+                @click="handleRefreshCaptcha"
+            />
+            <span v-else class="captcha-placeholder" @click="handleRefreshCaptcha">加载中...</span>
+          </div>
         </a-form-item>
 
         <a-button
@@ -222,5 +267,36 @@ const handleSubmit = async ({ errors, values }: any) => {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+.captcha-img {
+  width: 100px;
+  height: 32px;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 1px solid var(--color-neutral-3);
+  flex-shrink: 0;
+}
+
+.captcha-placeholder {
+  width: 100px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1px solid var(--color-neutral-3);
+  background-color: var(--color-fill-2);
+  color: var(--color-text-3);
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.captcha-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
 }
 </style>
