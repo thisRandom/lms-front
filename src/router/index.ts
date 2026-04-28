@@ -27,13 +27,6 @@ const routes: RouteRecordRaw[] = [
                 meta: { requiresAuth: true, locale: '首页', icon: 'icon-home', roles: ['*'] },
             },
             {
-                path: 'user',
-                name: 'user',
-                component: () => import('@/views/userManage.vue'),
-                // 假设：用户管理极其重要，只有 admin 和 manager 能访问
-                meta: { requiresAuth: true, locale: '用户管理', icon: 'icon-user', roles: ['ADMIN', 'DISPATCHER'] },
-            },
-            {
                 path: 'vehicle',
                 name: 'vehicle',
                 component: () => import('@/views/vehicleManage.vue'),
@@ -60,11 +53,16 @@ const routes: RouteRecordRaw[] = [
                 meta: { requiresAuth: true, locale: '轨迹管理', icon: 'icon-location', roles: ['ADMIN', 'manager', 'editor', 'viewer'] },
             },
             {
+                path: 'user',
+                name: 'user',
+                component: () => import('@/views/userManage.vue'),
+                meta: { requiresAuth: true, locale: '用户管理', icon: 'icon-user', roles: ['ADMIN','DISPATCHER'] },
+            },
+            {
                 path: 'settings',
                 name: 'settings',
                 component: () => import('@/views/userSetting.vue'),
-                // 假设：系统设置仅限超管
-                meta: { requiresAuth: true, locale: '系统设置', icon: 'icon-settings', roles: ['ADMIN'] },
+                meta: { requiresAuth: true, locale: '个人设置设置', icon: 'icon-settings', roles: ['*'] },
             },
         ],
     },

@@ -43,12 +43,12 @@ interface MenuItem {
 // 核心修改 1：对齐刚才在 Router 中定义的路由级权限角色
 const allMenus: MenuItem[] = [
   { key: 'dashboard', title: '首页', icon: IconHome, path: '/dashboard', roles: ['*'] },
-  { key: 'user', title: '用户管理', icon: IconUser, path: '/dashboard/user', roles: ['ADMIN', 'MANAGER'] },
   { key: 'vehicle', title: '车辆管理', icon: IconDriveFile, path: '/dashboard/vehicle', roles: ['ADMIN', 'MANAGER', 'editor'] },
   { key: 'order', title: '订单管理', icon: IconFile, path: '/dashboard/order', roles: ['ADMIN', 'MANAGER', 'editor'] },
   { key: 'dispatch', title: '调度管理', icon: IconList, path: '/dashboard/dispatch', roles: ['ADMIN', 'MANAGER', 'editor'] },
   { key: 'location', title: '轨迹管理', icon: IconLocation, path: '/dashboard/location', roles: ['ADMIN', 'MANAGER', 'editor', 'viewer'] },
-  { key: 'settings', title: '系统设置', icon: IconSettings, path: '/dashboard/settings', roles: ['ADMIN'] },
+  { key: 'user', title: '用户管理', icon: IconUser, path: '/dashboard/user', roles: ['ADMIN','DISPATCHER'] },
+  { key: 'settings', title: '个人设置', icon: IconSettings, path: '/dashboard/settings', roles: ['*'] },
 ]
 
 // 核心修改 2：适配新的 Store 结构和通配符逻辑
