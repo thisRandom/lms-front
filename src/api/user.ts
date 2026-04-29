@@ -54,8 +54,7 @@ export function getUserInfo() {
  * 使用 Partial<UserState> 表示可以只修改部分字段（如只改昵称，不改头像）
  */
 export function updateUserInfo(data: Partial<UserState>) {
-    // 假设后端接口路径为 /user/update
-    return request.put<any, HttpResponse>('/user/update', data);
+    return request.put<any, HttpResponse>('/users/update', data);
 }
 
 // 用户列表接口

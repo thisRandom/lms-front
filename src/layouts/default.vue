@@ -82,6 +82,15 @@ const handleDropdownSelect = async (value: string | number | Record<string, any>
     }
   }
 }
+
+// keep-alive 缓存控制：只激活当前页面和首页
+const keepAliveNames = ref<string[]>(['dashboard-home']);
+
+router.afterEach((to) => {
+  if (to.meta?.keepAlive) {
+    keepAliveNames.value = [to.name as string];
+  }
+});
 </script>
 
 <template>
@@ -142,7 +151,9 @@ const handleDropdownSelect = async (value: string | number | Record<string, any>
       <a-layout-content class="content">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
-            <component :is="Component" />
+            <keep-alive :include="keepAliveNames">
+              <component :is="Component" />
+            </keep-alive>
           </transition>
         </router-view>
       </a-layout-content>

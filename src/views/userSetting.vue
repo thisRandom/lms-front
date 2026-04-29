@@ -11,8 +11,14 @@ const userStore = useUserStore()
 // === 1. 基础信息表单逻辑 ===
 const profileFormRef = ref()
 const profileLoading = ref(false)
+const isEditing = ref(false)
 
 const profileForm = reactive({
+  realName: '',
+  phone: '',
+})
+
+const originFormData = reactive({
   realName: '',
   phone: '',
 })
@@ -35,6 +41,7 @@ const handleProfileSubmit = async ({ errors, values }: any) => {
       phone: profileForm.phone,
     })
     Message.success('个人资料已成功更新')
+    isEditing.value = false
   } catch (error) {
     console.error('更新失败', error)
   } finally {
@@ -42,9 +49,20 @@ const handleProfileSubmit = async ({ errors, values }: any) => {
   }
 }
 
-onMounted(() => {
+const toggleEdit = () => {
+  if (isEditing.value) {
+    profileForm.realName = originFormData.realName
+    profileForm.phone = originFormData.phone
+  }
+  isEditing.value = !isEditing.value
+}
+
+onMounted(async () => {
+  await userStore.fetchUserInfo()
   profileForm.realName = userStore.realName || ''
   profileForm.phone = userStore.phone || ''
+  originFormData.realName = profileForm.realName
+  originFormData.phone = profileForm.phone
 })
 
 // === 2. 修改密码表单逻辑 ===
@@ -114,17 +132,21 @@ const handlePwdSubmit = async ({ errors }: any) => {
 
         <a-tab-pane key="basic">
           <template #title>
-            <icon-user class="tab-icon"/> 基本信息
+            <IconUser class="tab-icon"/> 基本信息
           </template>
 
           <div class="tab-content">
             <div class="avatar-section">
-              <a-avatar :size="72" :style="{ backgroundColor: 'var(--color-primary)' }">
-                <IconUser />
-              </a-avatar>
+             <a-avatar :size="72" :style="{ backgroundColor: '#3370ff' }">
+               <IconUser/>
+             </a-avatar>
               <div class="avatar-tips">
-                <h3>{{ userStore.username }}</h3>
-                <span class="role-tag">{{ userStore.role }}</span>
+                <h3 class="user-name">{{ userStore.username }}</h3>
+
+                <div class="role-wrapper">
+                  <span class="role-label">角色：</span>
+                  <span class="role-tag">{{ userStore.role }}</span>
+                </div>
               </div>
             </div>
 
@@ -137,21 +159,31 @@ const handlePwdSubmit = async ({ errors }: any) => {
                 class="form-container"
             >
               <a-form-item field="realName" label="姓名">
-                <a-input v-model="profileForm.realName" placeholder="请输入姓名" size="large">
-                  <template #prefix><icon-user /></template>
+                <a-input v-model="profileForm.realName" placeholder="请输入姓名" size="large" :disabled="!isEditing">
+                  <template #prefix><IconUser /></template>
                 </a-input>
               </a-form-item>
 
               <a-form-item field="phone" label="手机号">
-                <a-input v-model="profileForm.phone" placeholder="请输入手机号" size="large">
-                  <template #prefix><icon-phone /></template>
+                <a-input v-model="profileForm.phone" placeholder="请输入手机号" size="large" :disabled="!isEditing">
+                  <template #prefix><IconPhone /></template>
                 </a-input>
               </a-form-item>
 
               <a-form-item>
-                <a-button type="primary" html-type="submit" :loading="profileLoading" size="large">
-                  保存基本信息
-                </a-button>
+                <div class="action-row">
+                  <a-button v-if="!isEditing" type="primary" size="large" @click="toggleEdit">
+                    编辑
+                  </a-button>
+                  <template v-else>
+                    <a-button type="primary" html-type="submit" :loading="profileLoading" size="large">
+                      保存
+                    </a-button>
+                    <a-button size="large" @click="toggleEdit" style="margin-left: 12px">
+                      取消
+                    </a-button>
+                  </template>
+                </div>
               </a-form-item>
             </a-form>
           </div>
@@ -159,7 +191,7 @@ const handlePwdSubmit = async ({ errors }: any) => {
 
         <a-tab-pane key="security">
           <template #title>
-            <icon-safe class="tab-icon"/> 安全设置
+            <IconSafe class="tab-icon"/> 安全设置
           </template>
 
           <div class="tab-content">
@@ -178,19 +210,19 @@ const handlePwdSubmit = async ({ errors }: any) => {
             >
               <a-form-item field="oldPassword" label="当前密码">
                 <a-input-password v-model="pwdForm.oldPassword" placeholder="请输入当前密码" size="large">
-                  <template #prefix><icon-lock /></template>
+                  <template #prefix><IconLock /></template>
                 </a-input-password>
               </a-form-item>
 
               <a-form-item field="newPassword" label="新密码">
                 <a-input-password v-model="pwdForm.newPassword" placeholder="8-16位，含大小写/数字/符号至少三种" size="large">
-                  <template #prefix><icon-lock /></template>
+                  <template #prefix><IconLock /></template>
                 </a-input-password>
               </a-form-item>
 
               <a-form-item field="confirmPassword" label="确认新密码">
                 <a-input-password v-model="pwdForm.confirmPassword" placeholder="请再次输入新密码" size="large">
-                  <template #prefix><icon-lock /></template>
+                  <template #prefix><IconLock /></template>
                 </a-input-password>
               </a-form-item>
 
@@ -281,9 +313,33 @@ const handlePwdSubmit = async ({ errors }: any) => {
       display: flex;
       align-items: center;
       gap: 20px;
-      margin-bottom: 36px;
+      padding: 16px 0;
+
+      .role-label {
+        color: var(--color-text-3, #86909c);
+        font-weight: 500;
+        margin-right: 4px;
+      }
+
+      .role-wrapper {
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+      }
+
+      .avatar-tips .user-name {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--color-text-1, #1d2129); /* 兼容后备颜色 */
+        line-height: 1.2;
+      }
 
       .avatar-tips {
+        display: flex;
+        flex-direction: column; /* 让姓名和角色上下排列 */
+        justify-content: center;
+        gap: 8px; /* 姓名和角色行的间距 */
         h3 {
           margin: 0 0 8px 0;
           font-size: 18px;
@@ -317,6 +373,11 @@ const handlePwdSubmit = async ({ errors }: any) => {
 
     .form-container {
       width: 100%;
+
+      .action-row {
+        display: flex;
+        align-items: center;
+      }
     }
   }
 }

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import {getUserInfo, login as userLogin, Logout as userLogout, updateUserInfo} from '@/api/user';
+import { getUserInfo, login as userLogin, updateUserInfo } from '@/api/user';
 import { setToken, clearToken, getToken } from '@/utils/auth';
 import type { UserState, RoleType } from './types'; // 去掉 .ts 后缀，Vite/Webpack 会自动解析
 
@@ -7,6 +7,8 @@ export const useUserStore = defineStore('user', {
     // 1. 定义 State
     state: (): UserState => ({
         username: undefined,
+        realName: '',
+        phone: '',
         role: 'ERROR',
         token: getToken() || undefined,
         expireTime: 0,
@@ -31,10 +33,10 @@ export const useUserStore = defineStore('user', {
             try {
                 const res = await userLogin(loginForm);
 
-                // 解构出后端返回的数据，增加对 expireTime 的解构
+                // 解构出后端返回的数据
                 const { token, expireTime, user } = res.data;
 
-                const { role, username, realName, phone } = user;
+                const { role, username, realName } = user;
 
                 setToken(token); // 存入 localStorage
 
@@ -44,7 +46,6 @@ export const useUserStore = defineStore('user', {
                     role: role as RoleType,
                     username,
                     realName,
-                    phone,
                     expireTime: expireTime || 0,
                     isLoggedIn: true,
                 });
@@ -69,7 +70,6 @@ export const useUserStore = defineStore('user', {
 
                 return; // 返回结果供组件层处理（如显示成功提示）
             } catch (err) {
-                // 如果后端校验失败（如昵称重复），错误会被 Axios 拦截器捕获
                 throw err;
             }
         },
@@ -93,17 +93,8 @@ export const useUserStore = defineStore('user', {
 
         // 退出登录逻辑 (生命周期闭环)
         async logout() {
-            try {
-                // 1. 必须加上 await，让代码等待请求结果
-                await userLogout();
-            } catch (err) {
-                // 2. 增加 catch 块：如果后端没有写登出接口或者登出报错，
-                // 我们在这里把它“默默吃掉”，不再往外抛出，防止控制台飙红
-                console.warn('退出登录接口报错，忽略异常', err);
-            } finally {
-                // 无论如何，前端必须清理干净
-                this.resetInfo();
-            }
+            // 密码修改后 token 已失效，直接清理本地状态并跳转登录页，不调 logout 接口避免 401 弹框
+            this.resetInfo();
         }
     }
 });

@@ -84,7 +84,7 @@ onMounted(() => {
         <a-form-item field="username" label="用户名" hide-asterisk>
           <a-input
               v-model="form.username"
-              placeholder="请输入管理员账号"
+              placeholder="请输入账号"
               allow-clear
               size="large"
               class="custom-input"

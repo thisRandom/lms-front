@@ -48,7 +48,7 @@
               <template #icon><icon-plus /></template>
               新增用户
             </a-button>
-            <a-button type="primary" @click="handleSearch">
+            <a-button type="primary" @click="debouncedSearch">
               <template #icon><icon-search /></template>
               搜索
             </a-button>
@@ -273,11 +273,14 @@ const fetchData = async () => {
     const res = await getUserList(params);
     let { records, total, current } = res.data;
     if (userStore.role === 'ADMIN') {
+      const originalTotal = total;
       records = records.filter((r) => r.roleId !== 1);
-      total = records.length;
+      // 分页数量用原始 total，保持分页器正确
+      pagination.total = originalTotal;
+    } else {
+      pagination.total = total;
     }
     tableData.value = records;
-    pagination.total = total;
     pagination.current = current;
   } catch (error) {
     Message.error('获取用户列表失败，请重试');
@@ -285,6 +288,14 @@ const fetchData = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+const debouncedSearch = () => {
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    handleSearch();
+  }, 300);
 };
 
 const handleSearch = () => {
@@ -405,7 +416,7 @@ const handleDelete = async (record: UserListItem) => {
 const handleResetPassword = async (record: UserListItem) => {
   try {
     await resetPassword(record.id);
-    Message.success('密码已重置为 123456');
+    Message.success('密码已重置');
   } catch {
     Message.error('重置密码失败');
   }

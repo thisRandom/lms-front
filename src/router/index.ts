@@ -30,33 +30,31 @@ const routes: RouteRecordRaw[] = [
                 path: 'vehicle',
                 name: 'vehicle',
                 component: () => import('@/views/vehicleManage.vue'),
-                // 假设：车辆管理允许 admin, manager, editor 访问
-                meta: { requiresAuth: true, locale: '车辆管理', icon: 'icon-truck', roles: ['ADMIN', 'DISPATCHER', 'editor'] },
+                meta: { requiresAuth: true, locale: '车辆管理', icon: 'icon-truck', roles: ['ADMIN', 'DISPATCHER', 'editor'], keepAlive: true },
             },
             {
                 path: 'order',
                 name: 'order',
                 component: () => import('@/views/orderManage.vue'),
-                meta: { requiresAuth: true, locale: '订单管理', icon: 'icon-document', roles: ['ADMIN', 'DISPATCHER', 'editor'] },
+                meta: { requiresAuth: true, locale: '订单管理', icon: 'icon-document', roles: ['ADMIN', 'DISPATCHER', 'editor'], keepAlive: true },
             },
             {
                 path: 'dispatch',
                 name: 'dispatch',
                 component: () => import('@/views/dispatchManage.vue'),
-                meta: { requiresAuth: true, locale: '调度管理', icon: 'icon-list', roles: ['ADMIN', 'DISPATCHER', 'editor'] },
+                meta: { requiresAuth: true, locale: '调度管理', icon: 'icon-list', roles: ['ADMIN', 'DISPATCHER', 'editor'], keepAlive: true },
             },
             {
                 path: 'location',
                 name: 'location',
                 component: () => import('@/views/locationManage.vue'),
-                // 假设：轨迹所有人都能看 (或者明确列出全部四种角色)
-                meta: { requiresAuth: true, locale: '轨迹管理', icon: 'icon-location', roles: ['ADMIN', 'manager', 'editor', 'viewer'] },
+                meta: { requiresAuth: true, locale: '轨迹管理', icon: 'icon-location', roles: ['ADMIN', 'manager', 'editor', 'viewer'], keepAlive: true },
             },
             {
                 path: 'user',
                 name: 'user',
                 component: () => import('@/views/userManage.vue'),
-                meta: { requiresAuth: true, locale: '用户管理', icon: 'icon-user', roles: ['ADMIN','DISPATCHER'] },
+                meta: { requiresAuth: true, locale: '用户管理', icon: 'icon-user', roles: ['ADMIN','DISPATCHER'], keepAlive: true },
             },
             {
                 path: 'settings',
