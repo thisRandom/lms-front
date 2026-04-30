@@ -15,6 +15,7 @@ export interface VehicleListItem {
   plateNumber: string;
   vehicleType: string;
   loadCapacity: number;
+  volume: number;
   driverId: number;
   driverName: string;
   driverPhone: string;
@@ -40,6 +41,7 @@ export function addVehicle(data: {
     plateNumber: string;
     vehicleType: string;
     loadCapacity: number;
+    volume: number;
     driverId: number;
     status: string;
 }) {
@@ -56,6 +58,7 @@ export function updateVehicle(vehicleId: number, data: {
     plateNumber?: string;
     vehicleType?: string;
     loadCapacity?: number;
+    volume?: number;
     driverId?: number;
 }) {
     return request.put<any, HttpResponse>(`/vehicles/${vehicleId}`, data);

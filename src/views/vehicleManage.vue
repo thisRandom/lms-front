@@ -132,6 +132,9 @@
         <a-form-item field="loadCapacity" label="载重能力" required>
           <a-input-number v-model="addForm.loadCapacity" placeholder="请输入载重能力（吨）" :min="0" />
         </a-form-item>
+        <a-form-item field="volume" label="体积" required>
+          <a-input-number v-model="addForm.volume" placeholder="请输入体积（方）" :min="0" />
+        </a-form-item>
         <a-form-item field="driverId" label="司机" required>
           <a-select
               v-model="addForm.driverId"
@@ -170,6 +173,9 @@
         <a-form-item field="loadCapacity" label="载重能力" required>
           <a-input-number v-model="editForm.loadCapacity" placeholder="请输入载重能力（吨）" :min="0" />
         </a-form-item>
+        <a-form-item field="volume" label="体积" required>
+          <a-input-number v-model="editForm.volume" placeholder="请输入体积（方）" :min="0" />
+        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -184,6 +190,7 @@
         <a-descriptions-item label="车牌号">{{ currentVehicle.plateNumber }}</a-descriptions-item>
         <a-descriptions-item label="车辆类型">{{ getVehicleTypeName(currentVehicle.vehicleType) }}</a-descriptions-item>
         <a-descriptions-item label="载重能力">{{ currentVehicle.loadCapacity }} 吨</a-descriptions-item>
+        <a-descriptions-item label="体积">{{ currentVehicle.volume }} 方</a-descriptions-item>
         <a-descriptions-item label="司机姓名">{{ currentVehicle.driverName }}</a-descriptions-item>
         <a-descriptions-item label="司机电话">{{ currentVehicle.driverPhone }}</a-descriptions-item>
         <a-descriptions-item label="状态">
@@ -236,6 +243,7 @@ const addForm = reactive({
   plateNumber: '',
   vehicleType: '',
   loadCapacity: 0,
+  volume: 0,
   driverId: undefined as number | undefined,
 });
 
@@ -252,6 +260,7 @@ const editForm = reactive({
   plateNumber: '',
   vehicleType: '',
   loadCapacity: 0,
+  volume: 0,
 });
 
 const canEdit = userStore.role === 'ADMIN' || userStore.role === 'DISPATCHER';
@@ -354,12 +363,13 @@ const handleAdd = () => {
   addForm.plateNumber = '';
   addForm.vehicleType = '';
   addForm.loadCapacity = 0;
+  addForm.volume = 0;
   addForm.driverId = undefined;
   addModalVisible.value = true;
 };
 
 const handleAddSubmit = async (done: (val: boolean) => void) => {
-  if (!addForm.plateNumber || !addForm.vehicleType || !addForm.loadCapacity || addForm.driverId === undefined) {
+  if (!addForm.plateNumber || !addForm.vehicleType || !addForm.loadCapacity || addForm.volume === undefined || addForm.driverId === undefined) {
     Message.warning('请填写完整信息');
     done(false);
     return;
@@ -369,6 +379,7 @@ const handleAddSubmit = async (done: (val: boolean) => void) => {
       plateNumber: addForm.plateNumber,
       vehicleType: addForm.vehicleType,
       loadCapacity: addForm.loadCapacity,
+      volume: addForm.volume,
       driverId: addForm.driverId as number,
       status: 'IDLE',
     });
@@ -387,11 +398,12 @@ const handleEdit = (record: VehicleListItem) => {
   editForm.plateNumber = record.plateNumber;
   editForm.vehicleType = record.vehicleType;
   editForm.loadCapacity = record.loadCapacity;
+  editForm.volume = record.volume;
   editModalVisible.value = true;
 };
 
 const handleEditSubmit = async (done: (val: boolean) => void) => {
-  if (!editForm.plateNumber || !editForm.vehicleType || !editForm.loadCapacity) {
+  if (!editForm.plateNumber || !editForm.vehicleType || !editForm.loadCapacity || editForm.volume === undefined) {
     Message.warning('请填写完整信息');
     done(false);
     return;
@@ -401,6 +413,7 @@ const handleEditSubmit = async (done: (val: boolean) => void) => {
       plateNumber: editForm.plateNumber,
       vehicleType: editForm.vehicleType,
       loadCapacity: editForm.loadCapacity,
+      volume: editForm.volume,
     });
     Message.success('编辑车辆成功');
     editModalVisible.value = false;
@@ -437,6 +450,7 @@ const columns: TableColumnData[] = [
   { title: '车牌号', dataIndex: 'plateNumber' },
   { title: '车辆类型', dataIndex: 'vehicleType', slotName: 'vehicleType' },
   { title: '载重能力(吨)', dataIndex: 'loadCapacity' },
+  { title: '体积(方)', dataIndex: 'volume' },
   { title: '司机姓名', dataIndex: 'driverName' },
   { title: '司机电话', dataIndex: 'driverPhone' },
   { title: '状态', dataIndex: 'status', slotName: 'status' },
