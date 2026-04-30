@@ -45,6 +45,12 @@ const routes: RouteRecordRaw[] = [
                 meta: { requiresAuth: true, locale: '订单管理', icon: 'icon-document', roles: ['CUSTOMER'], keepAlive: true },
             },
             {
+                path: 'POder',
+                name: 'POder',
+                component: () => import('@/views/POrderManage.vue'),
+                meta: { requiresAuth: true, locale: '立即下单', icon: 'icon-document', roles: ['CUSTOMER'], keepAlive: true },
+            },
+            {
                 path: 'dispatch',
                 name: 'dispatch',
                 component: () => import('@/views/dispatchManage.vue'),

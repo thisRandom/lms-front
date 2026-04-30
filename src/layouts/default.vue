@@ -44,11 +44,12 @@ interface MenuItem {
 const allMenus: MenuItem[] = [
   { key: 'dashboard', title: '首页', icon: IconHome, path: '/dashboard', roles: ['*'] },
   { key: 'vehicle', title: '车辆管理', icon: IconDriveFile, path: '/dashboard/vehicle', roles: ['ADMIN', 'DISPATCHER'] },
-  { key: 'order', title: '订单管理', icon: IconFile, path: '/dashboard/order', roles: ['ADMIN', 'MANAGER', 'editor'] },
+  { key: 'order', title: '订单管理', icon: IconFile, path: '/dashboard/order', roles: ['ADMIN', 'DISPATCHER','DRIVER'] },
   { key: 'myOrder', title: '我的订单', icon: IconFile, path: '/dashboard/myOrder', roles: ['CUSTOMER'] },
   { key: 'dispatch', title: '调度管理', icon: IconList, path: '/dashboard/dispatch', roles: ['ADMIN', 'MANAGER', 'editor'] },
   { key: 'location', title: '轨迹管理', icon: IconLocation, path: '/dashboard/location', roles: ['ADMIN', 'MANAGER', 'editor', 'viewer'] },
   { key: 'user', title: '用户管理', icon: IconUser, path: '/dashboard/user', roles: ['ADMIN','DISPATCHER'] },
+  { key: 'user', title: '立即下单', icon: IconUser, path: '/dashboard/POder', roles: ['CUSTOMER'] },
   { key: 'my-vehicle', title: '我的车辆', icon: IconUser, path: '/dashboard/my-vehicle', roles: ['DRIVER'] },
   { key: 'settings', title: '个人设置', icon: IconSettings, path: '/dashboard/settings', roles: ['*'] },
 ]
