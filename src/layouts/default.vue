@@ -43,11 +43,13 @@ interface MenuItem {
 // 核心修改 1：对齐刚才在 Router 中定义的路由级权限角色
 const allMenus: MenuItem[] = [
   { key: 'dashboard', title: '首页', icon: IconHome, path: '/dashboard', roles: ['*'] },
-  { key: 'vehicle', title: '车辆管理', icon: IconDriveFile, path: '/dashboard/vehicle', roles: ['ADMIN', 'MANAGER', 'editor'] },
+  { key: 'vehicle', title: '车辆管理', icon: IconDriveFile, path: '/dashboard/vehicle', roles: ['ADMIN', 'DISPATCHER'] },
   { key: 'order', title: '订单管理', icon: IconFile, path: '/dashboard/order', roles: ['ADMIN', 'MANAGER', 'editor'] },
+  { key: 'myOrder', title: '我的订单', icon: IconFile, path: '/dashboard/myOrder', roles: ['CUSTOMER'] },
   { key: 'dispatch', title: '调度管理', icon: IconList, path: '/dashboard/dispatch', roles: ['ADMIN', 'MANAGER', 'editor'] },
   { key: 'location', title: '轨迹管理', icon: IconLocation, path: '/dashboard/location', roles: ['ADMIN', 'MANAGER', 'editor', 'viewer'] },
   { key: 'user', title: '用户管理', icon: IconUser, path: '/dashboard/user', roles: ['ADMIN','DISPATCHER'] },
+  { key: 'my-vehicle', title: '我的车辆', icon: IconUser, path: '/dashboard/my-vehicle', roles: ['DRIVER'] },
   { key: 'settings', title: '个人设置', icon: IconSettings, path: '/dashboard/settings', roles: ['*'] },
 ]
 
@@ -183,7 +185,7 @@ router.afterEach((to) => {
   justify-content: center;
   font-size: 18px;
   font-weight: bold;
-  color: var(--color-primary);
+  color: var(--color-neutral-10);
   background: var(--color-bg-2);
   border-bottom: 1px solid var(--color-border);
 }
