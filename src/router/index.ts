@@ -36,7 +36,7 @@ const routes: RouteRecordRaw[] = [
                 path: 'order',
                 name: 'order',
                 component: () => import('@/views/orderManage.vue'),
-                meta: { requiresAuth: true, locale: '订单管理', icon: 'icon-document', roles: ['ADMIN', 'DISPATCHER', 'DRIVER'], keepAlive: true },
+                meta: { requiresAuth: true, locale: '订单管理', icon: 'icon-document', roles: ['ADMIN', 'DISPATCHER'], keepAlive: true },
             },
             {
                 path: 'myOrder',
@@ -54,13 +54,7 @@ const routes: RouteRecordRaw[] = [
                 path: 'dispatch',
                 name: 'dispatch',
                 component: () => import('@/views/dispatchManage.vue'),
-                meta: { requiresAuth: true, locale: '调度管理', icon: 'icon-list', roles: ['DISPATCHER'], keepAlive: true },
-            },
-            {
-                path: 'location',
-                name: 'location',
-                component: () => import('@/views/locationManage.vue'),
-                meta: { requiresAuth: true, locale: '轨迹管理', icon: 'icon-location', roles: ['ADMIN', 'manager', 'editor', 'viewer'], keepAlive: true },
+                meta: { requiresAuth: true, locale: '调度管理', icon: 'icon-list', roles: ['DISPATCHER', 'DRIVER'], keepAlive: true },
             },
             {
                 path: 'user',

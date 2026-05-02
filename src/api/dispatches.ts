@@ -39,6 +39,41 @@ export interface CreateDispatchData {
   remark?: string;
 }
 
+export interface DispatchDetailItem extends DispatchListItem {
+  orderId: number;
+  vehicleId: number;
+  driverId: number;
+  driverPhone: string;
+  actualDepartureTime: string | null;
+  actualArrivalTime: string | null;
+  signName: string | null;
+  remark: string;
+  createTime: string;
+}
+
+export function getDispatchDetail(id: number) {
+  return request.get<any, HttpResponse<DispatchDetailItem>>(`/dispatches/${id}`);
+}
+
 export function createDispatch(data: CreateDispatchData) {
   return request.post<any, HttpResponse>('/dispatches', data);
+}
+
+export interface SignData {
+  signName: string;
+}
+
+export function signForDispatch(id: number, data: SignData) {
+  return request.put<any, HttpResponse>(`/dispatches/${id}/sign`, data);
+}
+
+export type DispatchStatus = 'ASSIGNED' | 'IN_TRANSIT' | 'ARRIVED' | 'SIGNED' | 'CANCELLED';
+
+export interface UpdateStatusData {
+  status: DispatchStatus;
+  currentLocation?: string;
+}
+
+export function updateDispatchStatus(id: number, data: UpdateStatusData) {
+  return request.put<any, HttpResponse>(`/dispatches/${id}/status`, data);
 }

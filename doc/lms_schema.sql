@@ -128,10 +128,11 @@ DROP TABLE IF EXISTS dis_location_log;
 CREATE TABLE dis_location_log (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '轨迹ID',
     dispatch_id BIGINT NOT NULL COMMENT '调度ID',
-    seq INT NOT NULL COMMENT '序号（0=起点）',
-    location VARCHAR(200) COMMENT '位置描述',
+    latitude DECIMAL(10,7) NOT NULL COMMENT '纬度',
+    longitude DECIMAL(10,7) NOT NULL COMMENT '经度',
+    location VARCHAR(200) COMMENT '位置描述（可选，选点后反向填充或手动填写）',
     record_time DATETIME NOT NULL COMMENT '记录时间',
     INDEX idx_dispatch_id (dispatch_id),
-    INDEX idx_dispatch_seq (dispatch_id, seq),
+    INDEX idx_dispatch_time (dispatch_id, record_time),
     CONSTRAINT fk_location_dispatch FOREIGN KEY (dispatch_id) REFERENCES dis_dispatch(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='轨迹记录表';

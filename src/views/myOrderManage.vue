@@ -173,29 +173,159 @@
       </a-form>
     </a-modal>
 
+    <a-modal
+        v-model:visible="signModalVisible"
+        title="确认签收"
+        :width="400"
+        @ok="handleSignConfirm"
+        @cancel="signModalVisible = false"
+        ok-text="确认"
+    >
+      <a-form :model="signForm" layout="vertical">
+        <a-form-item label="签收人" required>
+          <a-input v-model="signForm.signName" placeholder="请输入签收人姓名" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
     <a-drawer
-        :width="500"
+        :width="560"
         title="订单详情"
         :visible="previewVisible"
         @cancel="previewVisible = false"
-        :footer="false"
     >
-      <a-descriptions :column="2" bordered v-if="currentOrder">
-        <a-descriptions-item label="订单号" :span="2">{{ currentOrder.orderNo }}</a-descriptions-item>
-        <a-descriptions-item label="状态">
-          <a-tag :color="getStatusColor(currentOrder.status)">
-            {{ getStatusName(currentOrder.status) }}
-          </a-tag>
-        </a-descriptions-item>
-        <a-descriptions-item label="创建时间">{{ currentOrder.createTime }}</a-descriptions-item>
-        <a-descriptions-item label="发货人" :span="2">{{ currentOrder.shipperName }} {{ currentOrder.shipperPhone }}</a-descriptions-item>
-        <a-descriptions-item label="发货地址" :span="2">{{ currentOrder.shipperAddress }}</a-descriptions-item>
-        <a-descriptions-item label="收货人" :span="2">{{ currentOrder.receiverName }} {{ currentOrder.receiverPhone }}</a-descriptions-item>
-        <a-descriptions-item label="收货地址" :span="2">{{ currentOrder.receiverAddress }}</a-descriptions-item>
-        <a-descriptions-item label="货物类型">{{ currentOrder.goodsType }}</a-descriptions-item>
-        <a-descriptions-item label="重量">{{ currentOrder.weight }} 吨</a-descriptions-item>
-        <a-descriptions-item label="体积">{{ currentOrder.volume }} 方</a-descriptions-item>
-      </a-descriptions>
+      <a-spin :loading="!orderDetail && previewVisible" style="width: 100%">
+        <div class="order-detail" v-if="orderDetail">
+          <!-- 基本信息 -->
+          <div class="detail-section">
+            <div class="section-title">基本信息</div>
+            <div class="detail-row">
+              <div class="detail-item full">
+                <span class="label">订单号</span>
+                <span class="value mono">{{ orderDetail.orderNo }}</span>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <span class="label">状态</span>
+                <a-tag :color="getStatusColor(orderDetail.status)">
+                  {{ getStatusName(orderDetail.status) }}
+                </a-tag>
+              </div>
+              <div class="detail-item">
+                <span class="label">创建时间</span>
+                <span class="value">{{ orderDetail.createTime }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 发货信息 -->
+          <div class="detail-section">
+            <div class="section-title">发货信息</div>
+            <div class="detail-row">
+              <div class="detail-item full">
+                <span class="label">发货人</span>
+                <span class="value">{{ orderDetail.shipperName }} {{ orderDetail.shipperPhone }}</span>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-item full">
+                <span class="label">发货地址</span>
+                <span class="value">{{ orderDetail.shipperAddress }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 收货信息 -->
+          <div class="detail-section">
+            <div class="section-title">收货信息</div>
+            <div class="detail-row">
+              <div class="detail-item full">
+                <span class="label">收货人</span>
+                <span class="value">{{ orderDetail.receiverName }} {{ orderDetail.receiverPhone }}</span>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-item full">
+                <span class="label">收货地址</span>
+                <span class="value">{{ orderDetail.receiverAddress }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 货物信息 -->
+          <div class="detail-section">
+            <div class="section-title">货物信息</div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <span class="label">货物类型</span>
+                <span class="value">{{ orderDetail.goodsType }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">重量</span>
+                <span class="value">{{ orderDetail.weight }} 吨</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">体积</span>
+                <span class="value">{{ orderDetail.volume }} 方</span>
+              </div>
+            </div>
+            <div class="detail-row" v-if="orderDetail.remark">
+              <div class="detail-item full">
+                <span class="label">备注</span>
+                <span class="value">{{ orderDetail.remark }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 调度信息 -->
+          <div class="detail-section" v-if="orderDetail.dispatch">
+            <div class="section-title">调度信息</div>
+            <div class="detail-row">
+              <div class="detail-item full">
+                <span class="label">调度单号</span>
+                <span class="value mono">{{ orderDetail.dispatch.dispatchNo }}</span>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <span class="label">车牌号</span>
+                <span class="value mono">{{ orderDetail.dispatch?.plateNumber || '-' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">调度状态</span>
+                <a-tag :color="getDispatchStatusColor(orderDetail.dispatch.status)">
+                  {{ getDispatchStatusName(orderDetail.dispatch.status) }}
+                </a-tag>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <span class="label">司机</span>
+                <span class="value">{{ orderDetail.dispatch.driverName }} {{ orderDetail.dispatch.driverPhone }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="label">当前位置</span>
+                <span class="value">{{ orderDetail.dispatch.currentLocation || '-' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </a-spin>
+      <template #footer>
+        <div class="drawer-footer" v-if="orderDetail?.dispatch">
+          <a-button
+              v-if="(orderDetail.dispatch as any).status === 'ARRIVED'"
+              type="primary"
+              @click="showSignModal"
+          >
+            确认签收
+          </a-button>
+          <span v-else-if="(orderDetail.dispatch as any).status === 'SIGNED'" class="signed-tip">
+            已签收
+          </span>
+        </div>
+      </template>
     </a-drawer>
   </div>
 </template>
@@ -207,8 +337,9 @@ import { IconSearch, IconRefresh, IconEye, IconClose, IconEdit } from '@arco-des
 import type { TableColumnData } from '@arco-design/web-vue';
 import dayjs from 'dayjs';
 
-import { getOrderList, cancelOrder, updateOrder } from '@/api/orders';
-import type { OrderListParams, OrderListItem, UpdateOrderData } from '@/api/orders';
+import { getOrderList, getOrderDetail, cancelOrder, updateOrder } from '@/api/orders';
+import { signForDispatch } from '@/api/dispatches';
+import type { OrderListParams, OrderListItem, UpdateOrderData, OrderDetail } from '@/api/orders';
 
 const searchForm = reactive<Omit<OrderListParams, 'page' | 'size'>>({
   orderNo: '',
@@ -231,6 +362,9 @@ const pagination = reactive({
 const previewVisible = ref(false);
 const currentOrder = ref<OrderListItem | null>(null);
 const editModalVisible = ref(false);
+const signModalVisible = ref(false);
+const signForm = reactive({ signName: '' });
+const signDispatchId = ref<number | null>(null);
 
 const editForm = reactive({
   id: 0,
@@ -264,6 +398,27 @@ const getStatusColor = (status: string) => {
     ARRIVED: 'green',
     SIGNED: 'green',
     CANCELLED: 'red',
+  };
+  return colors[status] || 'gray';
+};
+
+const dispatchStatusMap: Record<string, string> = {
+  ASSIGNED: '已分配',
+  IN_TRANSIT: '运输中',
+  ARRIVED: '已到达',
+  SIGNED: '已签收',
+  EXCEPTION: '异常',
+  CANCELLED: '已取消',
+};
+const getDispatchStatusName = (code: string) => dispatchStatusMap[code] || code;
+const getDispatchStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    ASSIGNED: 'cyan',
+    IN_TRANSIT: 'orange',
+    ARRIVED: 'green',
+    SIGNED: 'green',
+    EXCEPTION: 'red',
+    CANCELLED: 'gray',
   };
   return colors[status] || 'gray';
 };
@@ -317,9 +472,17 @@ const onPageSizeChange = (pageSize: number) => {
   fetchData();
 };
 
-const handlePreview = (record: OrderListItem) => {
+const orderDetail = ref<OrderDetail | null>(null);
+
+const handlePreview = async (record: OrderListItem) => {
   currentOrder.value = record;
   previewVisible.value = true;
+  try {
+    const res = await getOrderDetail(record.id);
+    orderDetail.value = res.data;
+  } catch {
+    orderDetail.value = null;
+  }
 };
 
 const handleCancel = async (record: OrderListItem) => {
@@ -380,6 +543,29 @@ const handleEditSubmit = async (done: (val: boolean) => void) => {
   }
 };
 
+const showSignModal = () => {
+  if (!orderDetail.value?.dispatch) return;
+  signDispatchId.value = (orderDetail.value.dispatch as any).id;
+  signForm.signName = orderDetail.value.receiverName;
+  signModalVisible.value = true;
+};
+
+const handleSignConfirm = async () => {
+  if (!signDispatchId.value || !signForm.signName.trim()) {
+    Message.warning('请输入签收人姓名');
+    return;
+  }
+  try {
+    await signForDispatch(signDispatchId.value, { signName: signForm.signName.trim() });
+    Message.success('签收成功');
+    signModalVisible.value = false;
+    previewVisible.value = false;
+    fetchData();
+  } catch {
+    Message.error('签收失败，请重试');
+  }
+};
+
 const columns: TableColumnData[] = [
   { title: '订单号', dataIndex: 'orderNo', width: 150 },
   { title: '发货人', dataIndex: 'shipperName', width: 100 },
@@ -412,5 +598,77 @@ onMounted(() => {
 }
 .search-form :deep(.arco-form-item) {
   margin-bottom: 0;
+}
+
+/* 订单详情面板样式 */
+.order-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-section {
+  background: var(--color-fill-1);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-item {
+  flex: 1;
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.detail-item.full {
+  flex-basis: 100%;
+}
+
+.detail-item .label {
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+.detail-item .value {
+  font-size: 14px;
+  color: var(--color-text-1);
+}
+
+.detail-item .value.mono {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.drawer-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.signed-tip {
+  color: var(--color-success);
+  font-size: 14px;
 }
 </style>
