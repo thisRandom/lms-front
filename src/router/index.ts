@@ -54,7 +54,7 @@ const routes: RouteRecordRaw[] = [
                 path: 'dispatch',
                 name: 'dispatch',
                 component: () => import('@/views/dispatchManage.vue'),
-                meta: { requiresAuth: true, locale: '调度管理', icon: 'icon-list', roles: ['ADMIN', 'DISPATCHER', 'editor'], keepAlive: true },
+                meta: { requiresAuth: true, locale: '调度管理', icon: 'icon-list', roles: ['DISPATCHER'], keepAlive: true },
             },
             {
                 path: 'location',

@@ -33,7 +33,7 @@
               </a-form-item>
             </a-col>
             <a-col :span="24">
-              <a-form-item field="shipperAddress" label="发货地址" required>
+              <a-form-item field="shipperAddress" label="发货地址">
                 <AddressCascader
                     v-model:province-code="form.shipperProvince"
                     v-model:city-code="form.shipperCity"
@@ -52,7 +52,7 @@
           </div>
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-form-item field="receiverName" label="收货人" required>
+              <a-form-item field="receiverName" label="收货人">
                 <a-input v-model="form.receiverName" placeholder="请输入收货人姓名" size="large">
                   <template #prefix><icon-user /></template>
                 </a-input>

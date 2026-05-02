@@ -68,3 +68,19 @@ export function updateVehicle(vehicleId: number, data: {
 export function deleteVehicle(vehicleId: number) {
     return request.delete<any, HttpResponse>(`/vehicles/${vehicleId}`);
 }
+
+// 获取空闲车辆接口 (4.5)
+export interface IdleVehicleItem {
+  id: number;
+  plateNumber: string;
+  vehicleType: string;
+  loadCapacity: number;
+  volume: number;
+  driverName: string;
+  lastLocation: string;
+  driverId: number;
+}
+
+export function getIdleVehicles() {
+  return request.get<any, HttpResponse<IdleVehicleItem[]>>('/vehicles/idle');
+}

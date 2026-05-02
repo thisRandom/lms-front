@@ -91,7 +91,7 @@
             编辑
           </a-button>
           <a-popconfirm
-              v-if="record.status === 'PENDING'"
+              v-if="record.status === 'PENDING' && (userStore.role === 'ADMIN' || userStore.role === 'DISPATCHER')"
               content="确定要取消该订单吗？"
               @ok="handleCancel(record)"
           >
@@ -100,6 +100,16 @@
               取消
             </a-button>
           </a-popconfirm>
+          <a-button
+              v-if="(userStore.role === 'ADMIN' || userStore.role === 'DISPATCHER') && record.status === 'PENDING'"
+              type="text"
+              size="mini"
+              status="warning"
+              @click="handleDispatch(record)"
+          >
+            <template #icon><icon-list /></template>
+            调度
+          </a-button>
         </a-space>
       </template>
     </a-table>
@@ -149,7 +159,7 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item field="shipperAddress" label="发货地址" required>
+            <a-form-item field="shipperAddress" label="发货地址">
               <AddressCascader
                   v-model:province-code="addForm.shipperProvince"
                   v-model:city-code="addForm.shipperCity"
@@ -159,7 +169,7 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item field="receiverAddress" label="收货地址" required>
+            <a-form-item field="receiverAddress" label="收货地址">
               <AddressCascader
                   v-model:province-code="addForm.receiverProvince"
                   v-model:city-code="addForm.receiverCity"
@@ -232,7 +242,7 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item field="shipperAddress" label="发货地址" required>
+            <a-form-item field="shipperAddress" label="发货地址">
               <AddressCascader
                   v-model:province-code="editForm.shipperProvince"
                   v-model:city-code="editForm.shipperCity"
@@ -242,7 +252,7 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item field="receiverAddress" label="收货地址" required>
+            <a-form-item field="receiverAddress" label="收货地址">
               <AddressCascader
                   v-model:province-code="editForm.receiverProvince"
                   v-model:city-code="editForm.receiverCity"
@@ -283,6 +293,86 @@
       </a-form>
     </a-modal>
 
+    <a-modal
+        v-model:visible="dispatchModalVisible"
+        title="调度 - {{ currentOrder?.orderNo }}"
+        :width="600"
+        @before-ok="handleDispatchSubmit"
+        @cancel="dispatchModalVisible = false"
+        ok-text="确认调度"
+    >
+      <a-form :model="dispatchForm" layout="vertical">
+        <div class="dispatch-order-info">
+          <a-descriptions :column="2" size="small" bordered>
+            <a-descriptions-item label="订单号" :span="2">{{ currentOrder?.orderNo }}</a-descriptions-item>
+            <a-descriptions-item label="发货地址" :span="2">{{ currentOrder?.shipperAddress }}</a-descriptions-item>
+            <a-descriptions-item label="收货地址" :span="2">{{ currentOrder?.receiverAddress }}</a-descriptions-item>
+          </a-descriptions>
+        </div>
+        <a-divider orientation="center">时间安排</a-divider>
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item field="estimatedDepartureTime" label="预计发车时间" required>
+              <a-date-picker
+                  v-model="dispatchForm.estimatedDepartureTime"
+                  show-time
+                  placeholder="选择日期时间"
+                  style="width: 100%"
+              />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item field="estimatedArrivalTime" label="预计到达时间" required>
+              <a-date-picker
+                  v-model="dispatchForm.estimatedArrivalTime"
+                  show-time
+                  placeholder="选择日期时间"
+                  style="width: 100%"
+              />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-divider orientation="center">选择空闲车辆</a-divider>
+        <a-radio-group v-model="dispatchForm.vehicleId" style="width: 100%">
+          <a-table
+              :data="availableVehicles"
+              :loading="idleVehicleLoading"
+              :pagination="false"
+              :scroll="{ y: 220 }"
+              size="small"
+              show-header
+              row-key="id"
+              :row-class="(record: any) => dispatchForm.vehicleId === record.id ? 'selected-row' : ''"
+              @row-click="(record: any) => { dispatchForm.vehicleId = record.id; handleVehicleChange(record.id); }"
+          >
+            <template #columns>
+              <a-table-column :width="40">
+                <template #cell="{ record }">
+                  <a-radio :value="record.id" />
+                </template>
+              </a-table-column>
+              <a-table-column title="车牌号" data-index="plateNumber" :width="100" />
+              <a-table-column title="车辆类型" :width="80">
+                <template #cell="{ record }">
+                  {{ record.vehicleType === 'TRUCK' ? '货车' : record.vehicleType === 'VAN' ? '厢式货车' : '皮卡' }}
+                </template>
+              </a-table-column>
+              <a-table-column title="体积(方)" :width="70">
+                <template #cell="{ record }">
+                  {{ record.volume }}
+                </template>
+              </a-table-column>
+              <a-table-column title="司机" data-index="driverName" :width="80" />
+              <a-table-column title="最后位置" data-index="lastLocation" ellipsis />
+            </template>
+          </a-table>
+        </a-radio-group>
+        <a-form-item field="remark" label="备注">
+          <a-input v-model="dispatchForm.remark" placeholder="请输入备注信息" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
     <a-drawer
         :width="500"
         title="订单详情"
@@ -311,15 +401,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { Message } from '@arco-design/web-vue';
-import { IconSearch, IconRefresh, IconEye, IconPlus, IconEdit, IconClose } from '@arco-design/web-vue/es/icon';
+import { IconSearch, IconRefresh, IconEye, IconPlus, IconEdit, IconClose, IconList } from '@arco-design/web-vue/es/icon';
 import type { TableColumnData } from '@arco-design/web-vue';
 import dayjs from 'dayjs';
 
 import { getOrderList, createOrder, updateOrder, cancelOrder } from '@/api/orders';
 import type { OrderListParams, OrderListItem, CreateOrderData, UpdateOrderData } from '@/api/orders';
 import { getUserList } from '@/api/user';
+import { getIdleVehicles } from '@/api/vehicles';
+import type { IdleVehicleItem } from '@/api/vehicles';
+import { createDispatch } from '@/api/dispatches';
+import type { CreateDispatchData } from '@/api/dispatches';
 import { useUserStore } from '@/stores/user';
 import AddressCascader from '@/components/AddressCascader/index.vue';
 import { buildFullAddress } from '@/components/AddressCascader/utils';
@@ -612,6 +706,86 @@ const handleCancel = async (record: OrderListItem) => {
   }
 };
 
+const dispatchModalVisible = ref(false);
+const idleVehicleLoading = ref(false);
+const idleVehicleList = ref<IdleVehicleItem[]>([]);
+const availableVehicles = computed(() => {
+  const order = currentOrder.value;
+  if (!order) return idleVehicleList.value;
+  return idleVehicleList.value.filter((v) => {
+    if (v.loadCapacity < order.weight) return false;
+    if (order.volume && v.volume < order.volume) return false;
+    return true;
+  });
+});
+const dispatchForm = reactive({
+  vehicleId: undefined as number | undefined,
+  estimatedDepartureTime: '',
+  estimatedArrivalTime: '',
+  remark: '',
+});
+
+const handleVehicleChange = (vehicleId: any) => {
+  const id = Number(vehicleId);
+  idleVehicleList.value.find((v) => v.id === id);
+};
+
+const handleDispatch = async (record: OrderListItem) => {
+  currentOrder.value = record;
+  dispatchForm.vehicleId = undefined;
+  dispatchForm.estimatedDepartureTime = '';
+  dispatchForm.estimatedArrivalTime = '';
+  dispatchForm.remark = '';
+  dispatchModalVisible.value = true;
+  idleVehicleLoading.value = true;
+  try {
+    const res = await getIdleVehicles();
+    idleVehicleList.value = res.data;
+  } catch {
+    Message.error('获取空闲车辆失败');
+    idleVehicleList.value = [];
+  } finally {
+    idleVehicleLoading.value = false;
+  }
+};
+
+const handleDispatchSubmit = async (done: (val: boolean) => void) => {
+  if (!dispatchForm.vehicleId || !dispatchForm.estimatedDepartureTime || !dispatchForm.estimatedArrivalTime) {
+    Message.warning('请选择车辆并填写时间');
+    done(false);
+    return;
+  }
+  if (!currentOrder.value) {
+    Message.warning('订单信息丢失');
+    done(false);
+    return;
+  }
+  const vehicle = idleVehicleList.value.find((v) => v.id === dispatchForm.vehicleId);
+  if (!vehicle) {
+    Message.warning('车辆信息丢失');
+    done(false);
+    return;
+  }
+  try {
+    const data: CreateDispatchData = {
+      orderId: currentOrder.value.id,
+      vehicleId: dispatchForm.vehicleId,
+      driverId: vehicle.driverId,
+      estimatedDepartureTime: dispatchForm.estimatedDepartureTime,
+      estimatedArrivalTime: dispatchForm.estimatedArrivalTime,
+      remark: dispatchForm.remark || undefined,
+    };
+    await createDispatch(data);
+    Message.success('调度成功');
+    dispatchModalVisible.value = false;
+    fetchData();
+    done(true);
+  } catch {
+    Message.error('调度失败');
+    done(false);
+  }
+};
+
 const columns: TableColumnData[] = [
   { title: '订单号', dataIndex: 'orderNo', width: 150 },
   { title: '发货人', dataIndex: 'shipperName', width: 100 },
@@ -626,7 +800,9 @@ const columns: TableColumnData[] = [
 
 onMounted(() => {
   fetchData();
-  fetchCustomerList();
+  if (userStore.role === 'ADMIN') {
+    fetchCustomerList();
+  }
 });
 </script>
 
@@ -645,5 +821,14 @@ onMounted(() => {
 }
 .search-form :deep(.arco-form-item) {
   margin-bottom: 0;
+}
+.dispatch-order-info {
+  margin-bottom: 8px;
+}
+:deep(.selected-row) {
+  background-color: var(--color-primary-light-1) !important;
+}
+:deep(.selected-row:hover) {
+  background-color: var(--color-primary-light-2) !important;
 }
 </style>
