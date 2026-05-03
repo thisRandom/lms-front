@@ -92,7 +92,7 @@ const vehicleTypeMap: Record<string, string> = {
 
 const statusMap: Record<string, string> = {
   IDLE: '空闲',
-  BUSY: '忙碌',
+  BUSY: '运输中',
   MAINTENANCE: '维修中',
 };
 

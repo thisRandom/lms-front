@@ -1,4 +1,5 @@
 import request, { type HttpResponse } from '@/utils/request';
+import type { LocationPoint } from './location';
 
 export interface OrderListParams {
   page?: number;

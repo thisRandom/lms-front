@@ -194,7 +194,7 @@
         :visible="previewVisible"
         @cancel="previewVisible = false"
     >
-      <a-spin :loading="!orderDetail && previewVisible" style="width: 100%">
+      <a-spin :loading="!orderDetail && previewVisible || trajectoryLoading" style="width: 100%">
         <div class="order-detail" v-if="orderDetail">
           <!-- 基本信息 -->
           <div class="detail-section">
@@ -309,6 +309,14 @@
                 <span class="value">{{ orderDetail.dispatch.currentLocation || '-' }}</span>
               </div>
             </div>
+            <div class="detail-row" v-if="orderDetail.status === 'IN_TRANSIT' || orderDetail.status === 'ARRIVED' || orderDetail.status === 'SIGNED'">
+              <div class="detail-item full">
+                <a-button type="outline" size="small" @click="handleShowTrajectory">
+                  <template #icon><icon-location /></template>
+                  查看轨迹
+                </a-button>
+              </div>
+            </div>
           </div>
         </div>
       </a-spin>
@@ -327,19 +335,28 @@
         </div>
       </template>
     </a-drawer>
+
+    <TrajectoryPreview
+        v-model:visible="trajectoryVisible"
+        :points="trajectoryPoints"
+        height="400px"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { Message } from '@arco-design/web-vue';
-import { IconSearch, IconRefresh, IconEye, IconClose, IconEdit } from '@arco-design/web-vue/es/icon';
+import { IconSearch, IconRefresh, IconEye, IconClose, IconEdit, IconLocation } from '@arco-design/web-vue/es/icon';
 import type { TableColumnData } from '@arco-design/web-vue';
 import dayjs from 'dayjs';
 
 import { getOrderList, getOrderDetail, cancelOrder, updateOrder } from '@/api/orders';
 import { signForDispatch } from '@/api/dispatches';
+import { getDispatchLocations } from '@/api/location';
 import type { OrderListParams, OrderListItem, UpdateOrderData, OrderDetail } from '@/api/orders';
+import type { LocationPoint } from '@/api/location';
+import TrajectoryPreview from '@/components/TrajectoryPreview/index.vue';
 
 const searchForm = reactive<Omit<OrderListParams, 'page' | 'size'>>({
   orderNo: '',
@@ -473,6 +490,9 @@ const onPageSizeChange = (pageSize: number) => {
 };
 
 const orderDetail = ref<OrderDetail | null>(null);
+const trajectoryVisible = ref(false);
+const trajectoryPoints = ref<LocationPoint[]>([]);
+const trajectoryLoading = ref(false);
 
 const handlePreview = async (record: OrderListItem) => {
   currentOrder.value = record;
@@ -482,6 +502,21 @@ const handlePreview = async (record: OrderListItem) => {
     orderDetail.value = res.data;
   } catch {
     orderDetail.value = null;
+  }
+};
+
+const handleShowTrajectory = async () => {
+  if (!orderDetail.value?.dispatch?.id) return;
+  trajectoryVisible.value = true;
+  trajectoryLoading.value = true;
+  trajectoryPoints.value = [];
+  try {
+    const res = await getDispatchLocations(orderDetail.value.dispatch.id);
+    trajectoryPoints.value = res.data || [];
+  } catch {
+    Message.error('获取轨迹信息失败');
+  } finally {
+    trajectoryLoading.value = false;
   }
 };
 

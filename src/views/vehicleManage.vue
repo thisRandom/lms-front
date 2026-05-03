@@ -38,7 +38,7 @@
                 @clear="handleSearch"
             >
               <a-option value="IDLE">空闲</a-option>
-              <a-option value="BUSY">忙碌</a-option>
+              <a-option value="BUSY">运输中</a-option>
               <a-option value="MAINTENANCE">维修中</a-option>
             </a-select>
           </a-form-item>
@@ -273,7 +273,7 @@ const vehicleTypeMap: Record<string, string> = {
 
 const statusMap: Record<string, string> = {
   IDLE: '空闲',
-  BUSY: '忙碌',
+  BUSY: '运输中',
   MAINTENANCE: '维修中',
 };
 
@@ -287,6 +287,7 @@ const getStatusColor = (status: string) => {
   };
   return colors[status] || 'gray';
 };
+
 
 const fetchData = async () => {
   loading.value = true;
