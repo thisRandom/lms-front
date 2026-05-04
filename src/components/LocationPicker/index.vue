@@ -8,6 +8,8 @@
           allow-clear
           search-button
           @search="handleSearch"
+          @press-enter="handleSearch(searchKeyword)"
+          @input="handleSearch(searchKeyword)"
           style="width: 100%"
       />
       <!-- 搜索结果下拉 -->
@@ -61,6 +63,7 @@ import { IconClose } from '@arco-design/web-vue/es/icon';
 
 import chinaCityData from '@/assets/china.json';
 import { getAddressByAdcode } from '@/utils/geo';
+import { regionData } from 'element-china-area-data';
 
 export interface LocationItem {
   latitude: number;
@@ -113,11 +116,75 @@ const allCities = computed(() => {
   return (chinaCityData as any).features || [];
 });
 
+// 根据 regionData 查找完整的省市县地址
+const getFullAddressFromAdcode = (adcode: number): string => {
+  const codeStr = String(adcode);
+  // 省份码：前2位*10000 (如 44 -> 440000)
+  const provincePrefix = codeStr.slice(0, 2);
+  const provinceCode = parseInt(provincePrefix) * 10000;
+
+  // 城市码：前4位*100 (如 4401 -> 440100)
+  const cityPrefix = codeStr.slice(0, 4);
+  const cityCode = parseInt(cityPrefix) * 100;
+
+  let provinceName = '';
+  let cityName = '';
+  let districtName = '';
+
+  // 遍历 regionData 查找
+  for (const province of regionData) {
+    if (String(province.value) === String(provinceCode)) {
+      provinceName = province.label;
+
+      // 查找城市
+      if (province.children) {
+        for (const city of province.children) {
+          if (String(city.value) === String(cityCode)) {
+            cityName = city.label;
+            // 查找区县
+            if (city.children) {
+              for (const district of city.children) {
+                if (String(district.value) === String(adcode)) {
+                  districtName = district.label;
+                  break;
+                }
+              }
+            }
+            break;
+          }
+        }
+        // 如果没找到精确的市，尝试找同名市（处理直辖市情况）
+        if (!cityName && province.children?.[0]) {
+          cityName = province.children[0].label;
+        }
+      }
+      break;
+    }
+  }
+
+  // 构建完整地址
+  if (provinceName) {
+    // 直辖市/特别行政区
+    if (['北京市', '天津市', '上海市', '重庆市', '香港特别行政区', '澳门特别行政区'].includes(provinceName)) {
+      return districtName ? `${provinceName}${districtName}` : `${provinceName}${cityName}`;
+    }
+    // 普通省份：省略城市名如果和省份相同（如内蒙古自治区）
+    if (cityName === provinceName) {
+      return districtName ? `${provinceName}${districtName}` : provinceName;
+    }
+    return districtName ? `${provinceName}${cityName}${districtName}` : `${provinceName}${cityName}`;
+  }
+
+  return '';
+};
+
 // 根据 adcode 获取省市地址
 const getAddressWithProvince = (cityFeature: any): string => {
   const adcode = cityFeature.properties?.adcode;
   const cityName = cityFeature.properties?.name || '';
   if (adcode) {
+    const fullAddress = getFullAddressFromAdcode(adcode);
+    if (fullAddress) return fullAddress;
     return getAddressByAdcode(adcode, cityName);
   }
   return cityName;

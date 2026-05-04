@@ -1,7 +1,6 @@
 import type { Router } from 'vue-router';
 import { useUserStore } from '@/stores/user.ts';
-import { getToken } from '@/utils/auth';
-import { Message } from '@arco-design/web-vue';
+import { getToken, isTokenExpired } from '@/utils/auth';
 
 // 1. 定义白名单：不需要登录就可以访问的路径
 const whiteList = ['/login', '/404'];
@@ -16,31 +15,48 @@ export default function setupPermissionGuard(router: Router) {
         if (token) {
             // 1. 如果用户已经登录，却还要去访问登录页，直接把他踹回首页
             if (to.path === '/login') {
-                next({ path: '/dashboard' });
+                // 根据角色重定向到不同的首页
+                if (userStore.role === 'CUSTOMER') {
+                    next({ path: '/customer/myOrder' });
+                } else {
+                    next({ path: '/dashboard' });
+                }
                 return;
             }
 
             // 2. 处理 F5 刷新导致 Pinia 角色丢失的问题
             // 核心修复：增加对 'ERROR' 初始值的判断
             if (!userStore.role || userStore.role === 'ERROR') {
+                // 先检查本地 Token 是否已过期，避免无效请求
+                if (isTokenExpired()) {
+                    userStore.resetInfo();
+                    next(`/login?redirect=${to.path}`);
+                    return;
+                }
                 try {
                     // 重新拉取用户信息
                     await userStore.fetchUserInfo();
-
-                    // 确保动态路由等逻辑加载完毕，使用 replace 防止产生无用的历史记录
-                    next({ ...to, replace: true });
-                    return;
                 } catch (error) {
                     // 如果拉取失败（比如 Token 在后端过期了），清除前端缓存并跳回登录页
-                    console.error('状态恢复失败:', error);
-                    Message.error('登录状态已失效，请重新登录');
-                    userStore.resetInfo(); // 重置状态并清空 Token
+                    userStore.resetInfo();
                     next(`/login?redirect=${to.path}`);
                     return;
                 }
             }
 
-            // 3. RBAC 权限比对逻辑
+            // 3. 刷新后如果目标是根首页，根据角色重定向
+            if (to.path === '/' || to.path === '/dashboard') {
+                if (userStore.role === 'CUSTOMER') {
+                    next({ path: '/customer/myOrder', replace: true });
+                } else if (userStore.role === 'DRIVER') {
+                    next({ path: '/dashboard/driver-home', replace: true });
+                } else {
+                    next();
+                }
+                return;
+            }
+
+            // 4. RBAC 权限比对逻辑
             // 从目标路由的 meta 中读取允许访问的角色列表
             const requiredRoles = (to.meta.roles as string[]) || [];
 

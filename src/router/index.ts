@@ -14,6 +14,7 @@ const routes: RouteRecordRaw[] = [
         path: '/',
         redirect: '/dashboard',
     },
+    // ========== B端用户路由（管理员/调度员/司机） ==========
     {
         path: '/dashboard',
         component: () => import('@/layouts/default.vue'),
@@ -23,8 +24,7 @@ const routes: RouteRecordRaw[] = [
                 path: '',
                 name: 'dashboard-home',
                 component: () => import('@/views/dashboard.vue'),
-                // 所有角色均可访问首页，使用 '*' 或者不写 roles
-                meta: { requiresAuth: true, locale: '首页', icon: 'icon-home', roles: ['*'] },
+                meta: { requiresAuth: true, locale: '首页', icon: 'icon-home', roles: ['ADMIN', 'DISPATCHER', 'DRIVER'] },
             },
             {
                 path: 'vehicle',
@@ -37,18 +37,6 @@ const routes: RouteRecordRaw[] = [
                 name: 'order',
                 component: () => import('@/views/orderManage.vue'),
                 meta: { requiresAuth: true, locale: '订单管理', icon: 'icon-document', roles: ['ADMIN', 'DISPATCHER'], keepAlive: true },
-            },
-            {
-                path: 'myOrder',
-                name: 'myOrder',
-                component: () => import('@/views/myOrderManage.vue'),
-                meta: { requiresAuth: true, locale: '订单管理', icon: 'icon-document', roles: ['CUSTOMER'], keepAlive: true },
-            },
-            {
-                path: 'POder',
-                name: 'POder',
-                component: () => import('@/views/POrderManage.vue'),
-                meta: { requiresAuth: true, locale: '立即下单', icon: 'icon-document', roles: ['CUSTOMER'], keepAlive: true },
             },
             {
                 path: 'dispatch',
@@ -66,7 +54,7 @@ const routes: RouteRecordRaw[] = [
                 path: 'settings',
                 name: 'settings',
                 component: () => import('@/views/userSetting.vue'),
-                meta: { requiresAuth: true, locale: '个人设置', icon: 'icon-settings', roles: ['*'] },
+                meta: { requiresAuth: true, locale: '个人设置', icon: 'icon-settings', roles: ['ADMIN', 'DISPATCHER', 'DRIVER'] },
             },
             {
                 path: 'my-vehicle',
@@ -74,18 +62,52 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/views/myVehicle.vue'),
                 meta: { requiresAuth: true, locale: '我的车辆', icon: 'icon-truck', roles: ['DRIVER'], keepAlive: true },
             },
+            {
+                path: 'driver-home',
+                name: 'driver-home',
+                component: () => import('@/views/driverDashboard.vue'),
+                meta: { requiresAuth: true, locale: '首页', roles: ['DRIVER'] },
+            },
+        ],
+    },
+    // ========== C端用户路由（客户） ==========
+    {
+        path: '/customer',
+        component: () => import('@/layouts/customer.vue'),
+        meta: { requiresAuth: true },
+        children: [
+            {
+                path: '',
+                redirect: '/customer/myOrder',
+            },
+            {
+                path: 'myOrder',
+                name: 'myOrder',
+                component: () => import('@/views/customer/MyOrderNew.vue'),
+                meta: { requiresAuth: true, locale: '我的订单' },
+            },
+            {
+                path: 'POder',
+                name: 'POder',
+                component: () => import('@/views/POrderManage.vue'),
+                meta: { requiresAuth: true, locale: '立即下单' },
+            },
+            {
+                path: 'settings',
+                name: 'customer-settings',
+                component: () => import('@/views/customer/CustomerSettings.vue'),
+                meta: { requiresAuth: true, locale: '个人设置' },
+            },
         ],
     },
     // ================= 补充异常处理页面 =================
     {
         path: '/404',
         name: 'Error404',
-        // 提示：你需要在 views 目录下建一个 error/404.vue 页面
         component: () => import('@/views/error/404.vue'),
         meta: { requiresAuth: false },
     },
     {
-        // Vue3 Router 的 404 捕获写法 (替换掉原来的直接 redirect)
         path: '/:pathMatch(.*)*',
         redirect: '/404',
     },

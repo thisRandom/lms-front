@@ -38,14 +38,14 @@ const provinceCodeMap: Record<number, string> = {
 
 // 根据 adcode 获取省份名称
 const getProvinceByCode = (adcode: number): string | null => {
-  // 6位码：省份码是前4位（如 130100 河北省石家庄市 -> 130000）
-  // 4位码：本身就是省份码
+  // 6位码：取前2位 * 10000 (如 130100 河北省石家庄市 -> 130000)
+  // 4位码：取前2位 * 10000
   let provinceCode: number;
   if (adcode > 100000) {
-    // 6位码，取前4位
-    provinceCode = Math.floor(adcode / 100) * 100;
+    // 6位码，取前2位 * 10000
+    provinceCode = Math.floor(adcode / 10000) * 10000;
   } else if (adcode > 10000) {
-    // 4位码或5位码，取前2位 * 10000
+    // 4位码，取前2位 * 10000
     provinceCode = Math.floor(adcode / 10000) * 10000;
   } else {
     // 已经是省份码或更短

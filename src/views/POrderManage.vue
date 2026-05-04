@@ -52,7 +52,7 @@
           </div>
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-form-item field="receiverName" label="收货人">
+              <a-form-item field="receiverName" label="收货人" required>
                 <a-input v-model="form.receiverName" placeholder="请输入收货人姓名" size="large">
                   <template #prefix><icon-user /></template>
                 </a-input>
@@ -66,7 +66,7 @@
               </a-form-item>
             </a-col>
             <a-col :span="24">
-              <a-form-item field="receiverAddress" label="收货地址" required>
+              <a-form-item field="receiverAddress" label="收货地址">
                 <AddressCascader
                     v-model:province-code="form.receiverProvince"
                     v-model:city-code="form.receiverCity"
@@ -86,7 +86,7 @@
           <a-row :gutter="16">
             <a-col :span="12">
               <a-form-item field="goodsType" label="货物类型" required>
-                <a-select v-model="form.goodsType" placeholder="请选择货物类型" size="large">
+                <a-select v-model="form.goodsType" placeholder="请选择或输入货物类型" size="large" allow-create filterable>
                   <a-option value="电子产品">电子产品</a-option>
                   <a-option value="服装鞋帽">服装鞋帽</a-option>
                   <a-option value="食品饮料">食品饮料</a-option>
@@ -118,10 +118,12 @@
         </div>
 
         <div class="form-actions">
-          <a-button type="outline" size="large" @click="handleReset">
-            <template #icon><icon-refresh /></template>
-            重置表单
-          </a-button>
+          <a-popconfirm content="确定要重置表单吗？" @ok="handleReset">
+            <a-button type="outline" size="large">
+              <template #icon><icon-refresh /></template>
+              重置表单
+            </a-button>
+          </a-popconfirm>
           <a-button type="primary" size="large" :loading="submitting" @click="handleSubmit">
             <template #icon><icon-send /></template>
             提交订单

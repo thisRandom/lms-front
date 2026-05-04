@@ -79,14 +79,18 @@
             开始运输
           </a-button>
           <template v-if="record.status === 'IN_TRANSIT'">
-            <a-button
-                type="primary"
-                size="mini"
-                status="success"
-                @click="openArriveModal(record)"
+            <a-popconfirm
+                content="确认已到达目的地？"
+                @ok="handleArriveConfirm(record)"
             >
-              到达
-            </a-button>
+              <a-button
+                  type="primary"
+                  size="mini"
+                  status="success"
+              >
+                到达
+              </a-button>
+            </a-popconfirm>
             <a-button
                 type="primary"
                 size="mini"
@@ -104,6 +108,7 @@
         :width="560"
         title="调度详情"
         :visible="previewVisible"
+        :footer="false"
         @cancel="previewVisible = false"
     >
       <div v-if="currentDispatch" class="dispatch-detail">
@@ -189,6 +194,41 @@
           </div>
         </div>
 
+        <!-- 订单信息区块 -->
+        <div class="detail-section">
+          <div class="section-title">订单信息</div>
+          <div class="detail-row">
+            <div class="detail-item full">
+              <span class="label">发货人</span>
+              <span class="value">{{ currentDispatch.shipperName }} {{ currentDispatch.shipperPhone }}</span>
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-item full">
+              <span class="label">发货地址</span>
+              <span class="value">{{ currentDispatch.shipperAddress }}</span>
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-item full">
+              <span class="label">收货人</span>
+              <span class="value">{{ currentDispatch.receiverName }} {{ currentDispatch.receiverPhone }}</span>
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-item full">
+              <span class="label">收货地址</span>
+              <span class="value">{{ currentDispatch.receiverAddress }}</span>
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-item">
+              <span class="label">货物类型</span>
+              <span class="value">{{ currentDispatch.goodsType || '-' }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 备注区块 -->
         <div class="detail-section" v-if="currentDispatch.remark">
           <div class="section-title">备注</div>
@@ -215,25 +255,6 @@
         <div class="form-label">当前位置</div>
         <LocationPicker
             ref="startTransitLocationRef"
-            :height="'280px'"
-        />
-      </div>
-    </a-modal>
-
-    <!-- 确认到达模态框 -->
-    <a-modal
-        v-model:visible="arriveModalVisible"
-        title="确认到达"
-        :width="560"
-        :loading="arriveLoading"
-        @ok="handleArriveConfirm"
-        @cancel="arriveModalVisible = false"
-        ok-text="确认"
-    >
-      <div class="status-modal-content">
-        <div class="form-label">当前位置</div>
-        <LocationPicker
-            ref="arriveLocationRef"
             :height="'280px'"
         />
       </div>
@@ -307,12 +328,6 @@ const startTransitModalVisible = ref(false);
 const startTransitLoading = ref(false);
 const startTransitRecord = ref<DispatchListItem | null>(null);
 const startTransitLocationRef = ref<InstanceType<typeof LocationPicker> | null>(null);
-
-// 确认到达模态框
-const arriveModalVisible = ref(false);
-const arriveLoading = ref(false);
-const arriveRecord = ref<DispatchListItem | null>(null);
-const arriveLocationRef = ref<InstanceType<typeof LocationPicker> | null>(null);
 
 // 上报位置模态框
 const reportLocationModalVisible = ref(false);
@@ -444,45 +459,19 @@ const handleStartTransitConfirm = async () => {
 };
 
 // 司机操作：确认到达
-const openArriveModal = (record: DispatchListItem) => {
-  arriveRecord.value = record;
-  arriveModalVisible.value = true;
-};
-
-const handleArriveConfirm = async () => {
-  if (!arriveRecord.value) return;
-
-  const location = arriveLocationRef.value?.getSelectedLocation?.();
-  if (!location) {
-    Message.warning('请先在地图上选择位置');
-    return;
-  }
-
-  arriveLoading.value = true;
+const handleArriveConfirm = async (record: DispatchListItem) => {
   try {
-    await Promise.all([
-      updateDispatchStatus(arriveRecord.value.id, {
-        status: 'ARRIVED',
-        currentLocation: location.address || `(${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)})`,
-      }),
-      reportLocation({
-        dispatchId: arriveRecord.value.id,
-        latitude: location.latitude,
-        longitude: location.longitude,
-        location: location.address,
-      }),
-    ]);
+    await updateDispatchStatus(record.id, {
+      status: 'ARRIVED',
+    });
     Message.success('已确认到达');
-    arriveModalVisible.value = false;
     fetchData();
-    if (previewVisible.value && currentDispatch.value?.id === arriveRecord.value.id) {
-      const res = await getDispatchDetail(arriveRecord.value.id);
+    if (previewVisible.value && currentDispatch.value?.id === record.id) {
+      const res = await getDispatchDetail(record.id);
       currentDispatch.value = res.data;
     }
   } catch (error) {
     Message.error('操作失败，请重试');
-  } finally {
-    arriveLoading.value = false;
   }
 };
 
@@ -511,6 +500,7 @@ const handleReportLocationConfirm = async () => {
     });
     Message.success('位置已上报');
     reportLocationModalVisible.value = false;
+    fetchData();
     if (previewVisible.value && currentDispatch.value?.id === reportLocationRecord.value.id) {
       const res = await getDispatchDetail(reportLocationRecord.value.id);
       currentDispatch.value = res.data;

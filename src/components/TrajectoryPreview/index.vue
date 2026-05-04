@@ -3,6 +3,7 @@
       :visible="visible"
       title="轨迹预览"
       :width="900"
+      :footer="false"
       @update:visible="visible = $event"
   >
     <div class="trajectory-container">
@@ -206,6 +207,9 @@ watch(visible, (val) => {
         updateChart();
       }
     });
+  } else {
+    destroyChart();
+    activeIndex.value = -1;
   }
 }, { immediate: true });
 
@@ -215,7 +219,6 @@ watch(() => props.points, () => {
   }
 }, { deep: true });
 
-// 监听容器尺寸变化
 let resizeObserver: ResizeObserver | null = null;
 watch(visible, (val) => {
   if (val) {

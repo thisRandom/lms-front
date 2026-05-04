@@ -38,7 +38,7 @@ export const useUserStore = defineStore('user', {
 
                 const { role, username, realName } = user;
 
-                setToken(token); // 存入 localStorage
+                setToken(token, expireTime); // 存入 localStorage
 
                 // 更新内存状态
                 this.setInfo({

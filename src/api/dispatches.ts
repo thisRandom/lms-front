@@ -49,6 +49,13 @@ export interface DispatchDetailItem extends DispatchListItem {
   signName: string | null;
   remark: string;
   createTime: string;
+  shipperName: string;
+  shipperPhone: string;
+  shipperAddress: string;
+  receiverName: string;
+  receiverPhone: string;
+  receiverAddress: string;
+  goodsType: string;
 }
 
 export function getDispatchDetail(id: number) {

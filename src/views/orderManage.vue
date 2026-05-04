@@ -82,7 +82,7 @@
             详情
           </a-button>
           <a-button
-              v-if="(userStore.role === 'ADMIN' || userStore.role === 'DISPATCHER') && record.status !== 'CANCELLED' && record.status !== 'SIGNED'"
+              v-if="(userStore.role === 'ADMIN' || userStore.role === 'DISPATCHER') && record.status !== 'CANCELLED' && record.status !== 'SIGNED' && record.status !== 'ARRIVED'"
               type="text"
               size="mini"
               @click="handleEdit(record)"
@@ -183,7 +183,7 @@
         <a-row :gutter="16">
           <a-col :span="8">
             <a-form-item field="goodsType" label="货物类型" required>
-              <a-select v-model="addForm.goodsType" placeholder="请选择">
+              <a-select v-model="addForm.goodsType" placeholder="请选择或输入" allow-create filterable>
                 <a-option value="电子产品">电子产品</a-option>
                 <a-option value="服装">服装</a-option>
                 <a-option value="食品">食品</a-option>
@@ -266,7 +266,7 @@
         <a-row :gutter="16">
           <a-col :span="8">
             <a-form-item field="goodsType" label="货物类型" required>
-              <a-select v-model="editForm.goodsType" placeholder="请选择">
+              <a-select v-model="editForm.goodsType" placeholder="请选择或输入" allow-create filterable>
                 <a-option value="电子产品">电子产品</a-option>
                 <a-option value="服装">服装</a-option>
                 <a-option value="食品">食品</a-option>

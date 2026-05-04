@@ -24,11 +24,20 @@ import { ref, watch } from 'vue';
 import type { AddressCascaderProps } from './types';
 import { areaOptions } from './utils';
 
-const props = withDefaults(defineProps<AddressCascaderProps>(), {
+const props = withDefaults(defineProps<AddressCascaderProps & {
+  provinceCode?: string;
+  cityCode?: string;
+  districtCode?: string;
+  detailAddress?: string;
+}>(), {
   disabled: false,
   allowClear: true,
   size: 'medium',
   placeholder: '请选择省市区',
+  provinceCode: '',
+  cityCode: '',
+  districtCode: '',
+  detailAddress: '',
 });
 
 const emit = defineEmits<{
@@ -42,6 +51,7 @@ const emit = defineEmits<{
 const selectedValue = ref<string[]>([]);
 const detailAddress = ref('');
 
+// 监听 modelValue 变化
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {
     selectedValue.value = [
@@ -52,6 +62,14 @@ watch(() => props.modelValue, (newVal) => {
     detailAddress.value = newVal.detailAddress || '';
   }
 }, { immediate: true });
+
+// 监听单独的 prop 变化（用于外部清空值时响应）
+watch(() => [props.provinceCode, props.cityCode, props.districtCode], ([provinceCode, cityCode, districtCode]) => {
+  if (!provinceCode && !cityCode && !districtCode) {
+    selectedValue.value = [];
+    detailAddress.value = '';
+  }
+});
 
 watch(selectedValue, ([provinceCode, cityCode, districtCode]) => {
   emit('update:provinceCode', provinceCode || '');
