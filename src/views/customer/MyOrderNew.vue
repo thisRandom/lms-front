@@ -12,67 +12,65 @@
       </a-button>
     </div>
 
-    <!-- 订单统计卡片 -->
-    <div class="stats-cards">
-      <div class="stat-card pending" @click="filterByStatus('PENDING')">
-        <div class="stat-icon">
-          <icon-safe />
-        </div>
-        <div class="stat-info">
-          <div class="stat-value">{{ stats.pending }}</div>
-          <div class="stat-label">待调度</div>
-        </div>
-      </div>
-      <div class="stat-card in-transit" @click="filterByStatus('IN_TRANSIT')">
-        <div class="stat-icon">
-          <icon-location />
-        </div>
-        <div class="stat-info">
-          <div class="stat-value">{{ stats.inTransit }}</div>
-          <div class="stat-label">运输中</div>
-        </div>
-      </div>
-      <div class="stat-card signed" @click="filterByStatus('SIGNED')">
-        <div class="stat-icon">
-          <icon-check-circle />
-        </div>
-        <div class="stat-info">
-          <div class="stat-value">{{ stats.signed }}</div>
-          <div class="stat-label">已完成</div>
-        </div>
-      </div>
-      <div class="stat-card total">
-        <div class="stat-icon">
-          <icon-file />
-        </div>
-        <div class="stat-info">
-          <div class="stat-value">{{ stats.total }}</div>
-          <div class="stat-label">累计订单</div>
-        </div>
-      </div>
-    </div>
 
     <!-- 搜索和筛选 -->
-    <div class="search-section">
-      <div class="status-tabs">
-        <div
-            v-for="tab in statusTabs"
-            :key="tab.value"
-            :class="['status-tab', { active: searchForm.status === tab.value }]"
-            @click="handleTabChange(tab.value)"
+
+    <!-- 搜索和筛选 -->
+    <a-form :model="searchForm" layout="inline" class="search-form">
+      <a-form-item field="orderNo" label="订单号">
+        <a-input
+            v-model="searchForm.orderNo"
+            placeholder="订单号"
+            allow-clear
+            style="width: 140px"
+            @press-enter="handleSearch"
+            @clear="handleSearch"
+        />
+      </a-form-item>
+      <a-form-item field="status" label="状态">
+        <a-select
+            v-model="searchForm.status"
+            placeholder="状态"
+            allow-clear
+            style="width: 120px"
+            @change="handleSearch"
+            @clear="handleSearch"
         >
-          {{ tab.label }}
-        </div>
-      </div>
-      <a-input-search
-          v-model="searchForm.orderNo"
-          placeholder="搜索订单号"
-          style="width: 200px"
-          @search="handleSearch"
-          @press-enter="handleSearch"
-          search-button
-      />
-    </div>
+          <a-option value="PENDING">待调度</a-option>
+          <a-option value="DISPATCHED">已调度</a-option>
+          <a-option value="IN_TRANSIT">运输中</a-option>
+          <a-option value="ARRIVED">已到达</a-option>
+          <a-option value="SIGNED">已签收</a-option>
+          <a-option value="CANCELLED">已取消</a-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item field="startDate" label="开始日期">
+        <a-date-picker
+            v-model="searchForm.startDate"
+            placeholder="开始日期"
+            style="width: 130px"
+            @change="handleSearch"
+        />
+      </a-form-item>
+      <a-form-item field="endDate" label="结束日期">
+        <a-date-picker
+            v-model="searchForm.endDate"
+            placeholder="结束日期"
+            style="width: 130px"
+            @change="handleSearch"
+        />
+      </a-form-item>
+      <a-space>
+        <a-button type="primary" @click="handleSearch">
+          <template #icon><icon-search /></template>
+          搜索
+        </a-button>
+        <a-button @click="handleReset">
+          <template #icon><icon-refresh /></template>
+          重置
+        </a-button>
+      </a-space>
+    </a-form>
 
     <!-- 订单卡片列表 -->
     <div class="order-list">
@@ -93,7 +91,7 @@
         >
           <!-- 状态进度条 -->
           <div class="card-header">
-            <div class="status-steps">
+            <div class="status-steps" v-if="record.status !== 'CANCELLED'">
               <div
                   v-for="(step, index) in statusSteps"
                   :key="step.key"
@@ -105,6 +103,12 @@
                 </div>
                 <span class="step-label">{{ step.label }}</span>
               </div>
+            </div>
+            <div class="status-cancelled" v-else>
+              <div class="cancelled-dot">
+                <icon-close />
+              </div>
+              <span class="cancelled-label">已取消</span>
             </div>
             <div class="order-no">{{ record.orderNo }}</div>
           </div>
@@ -134,11 +138,11 @@
             <span class="goods-info">{{ record.weight }}吨 / {{ record.volume }}方</span>
           </div>
 
-          <!-- 承运信息（详情中查看） -->
-          <div class="card-driver">
+          <!-- 承运信息 -->
+          <div class="card-driver" v-if="record.dispatchId">
             <div class="driver-info">
               <icon-user class="driver-icon" />
-              <span>点击查看详情获取承运信息</span>
+              <span>点击查看详情</span>
             </div>
           </div>
 
@@ -169,8 +173,7 @@
     <a-drawer
         :width="560"
         title="订单详情"
-        :visible="previewVisible"
-        @cancel="previewVisible = false"
+        v-model:visible="previewVisible"
     >
       <a-spin :loading="!orderDetail && previewVisible || trajectoryLoading" style="width: 100%">
         <div class="order-detail" v-if="orderDetail">
@@ -299,15 +302,24 @@
         </div>
       </a-spin>
       <template #footer>
-        <div class="drawer-footer" v-if="orderDetail?.dispatch">
+        <div class="drawer-footer">
+          <a-popconfirm
+              v-if="orderDetail && orderDetail.status === 'PENDING'"
+              content="确定要取消该订单吗？"
+              @ok="handleCancel(orderDetail)"
+          >
+            <a-button type="outline" status="danger">
+              取消订单
+            </a-button>
+          </a-popconfirm>
           <a-button
-              v-if="(orderDetail.dispatch as any).status === 'ARRIVED'"
+              v-if="orderDetail?.dispatch && (orderDetail.dispatch as any).status === 'ARRIVED'"
               type="primary"
               @click="showSignModal"
           >
             确认签收
           </a-button>
-          <span v-else-if="(orderDetail.dispatch as any).status === 'SIGNED'" class="signed-tip">
+          <span v-if="orderDetail?.dispatch && (orderDetail.dispatch as any).status === 'SIGNED'" class="signed-tip">
             已签收
           </span>
         </div>
@@ -340,13 +352,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Message } from '@arco-design/web-vue';
+import dayjs from 'dayjs';
 import {
-  IconSend, IconCheckCircle, IconFile,
+  IconSend, IconCheckCircle, IconClose, IconFile,
   IconDown, IconRight, IconUser,
-  IconLocation, IconSafe
+  IconLocation
 } from '@arco-design/web-vue/es/icon';
 
 import { getOrderList, getOrderDetail, cancelOrder } from '@/api/orders';
@@ -361,6 +374,8 @@ const router = useRouter();
 const searchForm = reactive<Omit<OrderListParams, 'page' | 'size'>>({
   orderNo: '',
   status: undefined,
+  startDate: undefined,
+  endDate: undefined,
 });
 
 const loading = ref(false);
@@ -375,20 +390,6 @@ const pagination = reactive({
 });
 
 // 统计数据
-const stats = reactive({
-  pending: 0,
-  inTransit: 0,
-  signed: 0,
-  total: 0,
-});
-
-const statusTabs = [
-  { label: '全部', value: undefined },
-  { label: '待调度', value: 'PENDING' },
-  { label: '运输中', value: 'IN_TRANSIT' },
-  { label: '已完成', value: 'SIGNED' },
-];
-
 const statusSteps = [
   { key: 'PENDING', label: '待调度' },
   { key: 'DISPATCHED', label: '已调度' },
@@ -462,14 +463,11 @@ const goToQuickOrder = () => {
   router.push('/customer/POder');
 };
 
-const filterByStatus = (status: string | undefined) => {
-  searchForm.status = status;
-  pagination.current = 1;
-  fetchData();
-};
-
-const handleTabChange = (status: string | undefined) => {
-  searchForm.status = status;
+const handleReset = () => {
+  searchForm.orderNo = '';
+  searchForm.status = undefined;
+  searchForm.startDate = undefined;
+  searchForm.endDate = undefined;
   pagination.current = 1;
   fetchData();
 };
@@ -482,6 +480,8 @@ const fetchData = async () => {
       size: pagination.pageSize,
       orderNo: searchForm.orderNo || undefined,
       status: searchForm.status || undefined,
+      startDate: searchForm.startDate ? dayjs(searchForm.startDate).format('YYYY-MM-DD') : undefined,
+      endDate: searchForm.endDate ? dayjs(searchForm.endDate).format('YYYY-MM-DD') : undefined,
     };
     const res = await getOrderList(params);
     const { records, total, current } = res.data;
@@ -497,20 +497,6 @@ const fetchData = async () => {
 };
 
 // 获取统计数据
-const fetchStats = async () => {
-  try {
-    // 获取全部数据用于统计
-    const res = await getOrderList({ page: 1, size: 1000 });
-    const allOrders = res.data.records;
-    stats.total = res.data.total;
-    stats.pending = allOrders.filter((o: any) => o.status === 'PENDING').length;
-    stats.inTransit = allOrders.filter((o: any) => ['DISPATCHED', 'IN_TRANSIT', 'ARRIVED'].includes(o.status)).length;
-    stats.signed = allOrders.filter((o: any) => o.status === 'SIGNED').length;
-  } catch (error) {
-    console.error('获取统计数据失败', error);
-  }
-};
-
 const handleSearch = () => {
   pagination.current = 1;
   fetchData();
@@ -548,6 +534,17 @@ const handlePreview = async (record: OrderListItem) => {
   }
 };
 
+const handleCancel = async (order: OrderListItem | OrderDetail) => {
+  try {
+    await cancelOrder(order.id);
+    Message.success('订单已取消');
+    previewVisible.value = false;
+    fetchData();
+  } catch {
+    Message.error('取消订单失败，请稍后重试');
+  }
+};
+
 const handleShowTrajectory = async () => {
   if (!orderDetail.value?.dispatch?.id) return;
   trajectoryVisible.value = true;
@@ -581,7 +578,6 @@ const handleSignConfirm = async () => {
     signModalVisible.value = false;
     previewVisible.value = false;
     fetchData();
-    fetchStats();
   } catch {
     Message.error('签收失败，请重试');
   }
@@ -589,7 +585,6 @@ const handleSignConfirm = async () => {
 
 onMounted(() => {
   fetchData();
-  fetchStats();
 });
 </script>
 
@@ -619,112 +614,6 @@ onMounted(() => {
   margin: 4px 0 0;
   font-size: 13px;
   color: var(--color-text-3);
-}
-
-/* 统计卡片 */
-.stats-cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  background: var(--color-bg-2);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border-color: var(--color-primary-light-2);
-}
-
-.stat-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: #fff;
-}
-
-.stat-card.pending .stat-icon {
-  background: linear-gradient(135deg, #FFB020, #FF8C00);
-}
-
-.stat-card.in-transit .stat-icon {
-  background: linear-gradient(135deg, #165DFF, #4080FF);
-}
-
-.stat-card.signed .stat-icon {
-  background: linear-gradient(135deg, #00B42A, #23C343);
-}
-
-.stat-card.total .stat-icon {
-  background: linear-gradient(135deg, #722ED1, #9254DE);
-}
-
-.stat-info {
-  flex: 1;
-}
-
-.stat-value {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--color-text-1);
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: var(--color-text-3);
-  margin-top: 4px;
-}
-
-/* 搜索区域 */
-.search-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--color-bg-2);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-}
-
-.status-tabs {
-  display: flex;
-  gap: 8px;
-}
-
-.status-tab {
-  padding: 6px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  color: var(--color-text-2);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.status-tab:hover {
-  color: var(--color-text-1);
-  background: var(--color-fill-1);
-}
-
-.status-tab.active {
-  color: #fff;
-  background: linear-gradient(135deg, #165DFF, #4080FF);
 }
 
 /* 订单列表 */
@@ -761,70 +650,68 @@ onMounted(() => {
 /* 订单卡片 */
 .order-card {
   background: var(--color-bg-2);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 16px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 16px;
+  padding: 20px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.25s ease;
 }
 
 .order-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border-color: var(--color-primary-light-2);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-primary-light-3);
 }
 
 .card-header {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
 /* 状态步骤条 */
 .status-steps {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 4px;
+  gap: 0;
 }
 
 .step-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  flex: 1;
+  gap: 6px;
   position: relative;
 }
 
-.step-item:not(:last-child)::after {
+.step-item + .step-item {
+  margin-left: 8px;
+  padding-left: 8px;
+}
+
+.step-item + .step-item::before {
   content: '';
   position: absolute;
-  top: 12px;
-  left: calc(50% + 12px);
-  width: calc(100% - 24px);
-  height: 2px;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 14px;
   background: var(--color-border);
 }
 
-.step-item.completed:not(:last-child)::after {
-  background: linear-gradient(90deg, #00B42A, #23C343);
-}
-
 .step-dot {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: var(--color-fill-1);
   border: 2px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-3);
-  position: relative;
-  z-index: 1;
+  flex-shrink: 0;
   transition: all 0.2s;
 }
 
@@ -832,7 +719,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #165DFF, #4080FF);
   border-color: #165DFF;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(22, 93, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(22, 93, 255, 0.35);
 }
 
 .step-item.completed .step-dot {
@@ -847,49 +734,84 @@ onMounted(() => {
 }
 
 .step-label {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-3);
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .step-item.active .step-label {
   color: #165DFF;
-  font-weight: 500;
 }
 
 .step-item.completed .step-label {
   color: #00B42A;
 }
 
+/* 取消状态 */
+.status-cancelled {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cancelled-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #F53F3F, #F76969);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.cancelled-label {
+  font-size: 13px;
+  color: #F53F3F;
+  font-weight: 600;
+}
+
 .order-no {
   font-family: 'Monaco', 'Menlo', monospace;
   font-size: 12px;
   color: var(--color-text-3);
-  text-align: right;
+  letter-spacing: 0.3px;
 }
 
 /* 地址信息 */
 .card-address {
-  margin-bottom: 12px;
-  padding-left: 8px;
+  background: var(--color-fill-1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
 }
 
 .address-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  padding: 4px 0;
+}
+
+.address-row + .address-row {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-border);
 }
 
 .address-icon {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
   color: #fff;
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .address-icon.start {
@@ -901,13 +823,14 @@ onMounted(() => {
 }
 
 .address-text {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-text-1);
+  line-height: 1.5;
 }
 
 .address-arrow {
-  padding-left: 24px;
-  color: var(--color-text-3);
+  padding-left: 30px;
+  color: var(--color-text-4);
   font-size: 12px;
 }
 
@@ -915,18 +838,19 @@ onMounted(() => {
 .card-goods {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .goods-tag {
-  background: var(--color-fill-1);
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  color: var(--color-text-2);
+  background: rgba(255, 176, 32, 0.12);
+  color: #FF8C00;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .goods-info {
@@ -981,6 +905,7 @@ onMounted(() => {
   gap: 4px;
   font-size: 13px;
   color: var(--color-primary);
+  font-weight: 500;
 }
 
 /* 分页 */

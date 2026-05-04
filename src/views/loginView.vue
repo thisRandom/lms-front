@@ -45,7 +45,6 @@ const handleSubmit = async ({ errors, values }: any) => {
     router.push(redirect || '/dashboard')
 
   } catch (error) {
-    console.error('登录失败', error)
     form.captcha = ''
     handleRefreshCaptcha()
   } finally {
@@ -59,8 +58,8 @@ const handleRefreshCaptcha = async () => {
     const uuid = res.headers['captcha-uuid'];
     if (uuid) captchaUuid.value = uuid;
     captchaImgUrl.value = URL.createObjectURL(res.data);
-  } catch (e) {
-    console.error('获取验证码失败', e);
+  } catch (_e) {
+    // ignore captcha error
   }
 }
 

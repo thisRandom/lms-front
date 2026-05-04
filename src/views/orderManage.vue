@@ -243,22 +243,12 @@
           </a-col>
           <a-col :span="12">
             <a-form-item field="shipperAddress" label="发货地址">
-              <AddressCascader
-                  v-model:province-code="editForm.shipperProvince"
-                  v-model:city-code="editForm.shipperCity"
-                  v-model:district-code="editForm.shipperDistrict"
-                  v-model:detail-address="editForm.shipperDetailAddress"
-              />
+              <a-input v-model="editForm.shipperAddress" placeholder="请输入发货地址" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item field="receiverAddress" label="收货地址">
-              <AddressCascader
-                  v-model:province-code="editForm.receiverProvince"
-                  v-model:city-code="editForm.receiverCity"
-                  v-model:district-code="editForm.receiverDistrict"
-                  v-model:detail-address="editForm.receiverDetailAddress"
-              />
+              <a-input v-model="editForm.receiverAddress" placeholder="请输入收货地址" />
             </a-form-item>
           </a-col>
         </a-row>
@@ -376,8 +366,7 @@
     <a-drawer
         :width="560"
         title="订单详情"
-        :visible="previewVisible"
-        @cancel="previewVisible = false"
+        v-model:visible="previewVisible"
         :footer="false"
     >
       <a-spin :loading="!orderDetail && previewVisible || trajectoryLoading" style="width: 100%">
@@ -592,16 +581,10 @@ const editForm = reactive({
   id: 0,
   shipperName: '',
   shipperPhone: '',
-  shipperProvince: '',
-  shipperCity: '',
-  shipperDistrict: '',
-  shipperDetailAddress: '',
+  shipperAddress: '',
   receiverName: '',
   receiverPhone: '',
-  receiverProvince: '',
-  receiverCity: '',
-  receiverDistrict: '',
-  receiverDetailAddress: '',
+  receiverAddress: '',
   goodsType: '',
   weight: 0,
   volume: 0,
@@ -811,24 +794,33 @@ const handleAddSubmit = async (done: (val: boolean) => void) => {
   }
 };
 
-const handleEdit = (record: OrderListItem) => {
+const handleEdit = async (record: OrderListItem) => {
   editForm.id = record.id;
-  editForm.shipperName = record.shipperName;
-  editForm.shipperPhone = record.shipperPhone;
-  editForm.receiverName = record.receiverName;
-  editForm.receiverPhone = record.receiverPhone;
-  editForm.goodsType = record.goodsType;
-  editForm.weight = record.weight;
-  editForm.volume = record.volume;
-  editForm.remark = '';
-  editForm.shipperProvince = '';
-  editForm.shipperCity = '';
-  editForm.shipperDistrict = '';
-  editForm.shipperDetailAddress = '';
-  editForm.receiverProvince = '';
-  editForm.receiverCity = '';
-  editForm.receiverDistrict = '';
-  editForm.receiverDetailAddress = '';
+  try {
+    const res = await getOrderDetail(record.id);
+    const detail = res.data;
+    editForm.shipperName = detail.shipperName;
+    editForm.shipperPhone = detail.shipperPhone;
+    editForm.shipperAddress = detail.shipperAddress;
+    editForm.receiverName = detail.receiverName;
+    editForm.receiverPhone = detail.receiverPhone;
+    editForm.receiverAddress = detail.receiverAddress;
+    editForm.goodsType = detail.goodsType;
+    editForm.weight = detail.weight;
+    editForm.volume = detail.volume;
+    editForm.remark = detail.remark || '';
+  } catch {
+    editForm.shipperName = record.shipperName;
+    editForm.shipperPhone = record.shipperPhone;
+    editForm.shipperAddress = record.shipperAddress;
+    editForm.receiverName = record.receiverName;
+    editForm.receiverPhone = record.receiverPhone;
+    editForm.receiverAddress = record.receiverAddress;
+    editForm.goodsType = record.goodsType;
+    editForm.weight = record.weight;
+    editForm.volume = record.volume;
+    editForm.remark = '';
+  }
   editModalVisible.value = true;
 };
 
@@ -844,8 +836,10 @@ const handleEditSubmit = async (done: (val: boolean) => void) => {
     const data: UpdateOrderData = {
       shipperName: editForm.shipperName,
       shipperPhone: editForm.shipperPhone,
+      shipperAddress: editForm.shipperAddress,
       receiverName: editForm.receiverName,
       receiverPhone: editForm.receiverPhone,
+      receiverAddress: editForm.receiverAddress,
       goodsType: editForm.goodsType,
       weight: editForm.weight,
       volume: editForm.volume || undefined,
@@ -861,7 +855,6 @@ const handleEditSubmit = async (done: (val: boolean) => void) => {
     done(false);
   }
 };
-
 const handleCancel = async (record: OrderListItem) => {
   try {
     await cancelOrder(record.id);

@@ -321,15 +321,24 @@
         </div>
       </a-spin>
       <template #footer>
-        <div class="drawer-footer" v-if="orderDetail?.dispatch">
+        <div class="drawer-footer">
+          <a-popconfirm
+              v-if="orderDetail && orderDetail.status === 'PENDING'"
+              content="确定要取消该订单吗？"
+              @ok="handleCancelDrawer"
+          >
+            <a-button type="outline" status="danger">
+              取消订单
+            </a-button>
+          </a-popconfirm>
           <a-button
-              v-if="(orderDetail.dispatch as any).status === 'ARRIVED'"
+              v-if="orderDetail?.dispatch && (orderDetail.dispatch as any).status === 'ARRIVED'"
               type="primary"
               @click="showSignModal"
           >
             确认签收
           </a-button>
-          <span v-else-if="(orderDetail.dispatch as any).status === 'SIGNED'" class="signed-tip">
+          <span v-if="orderDetail?.dispatch && (orderDetail.dispatch as any).status === 'SIGNED'" class="signed-tip">
             已签收
           </span>
         </div>
@@ -524,6 +533,18 @@ const handleCancel = async (record: OrderListItem) => {
   try {
     await cancelOrder(record.id);
     Message.success('订单已取消');
+    fetchData();
+  } catch {
+    Message.error('取消订单失败，请稍后重试');
+  }
+};
+
+const handleCancelDrawer = async () => {
+  if (!orderDetail.value) return;
+  try {
+    await cancelOrder(orderDetail.value.id);
+    Message.success('订单已取消');
+    previewVisible.value = false;
     fetchData();
   } catch {
     Message.error('取消订单失败，请稍后重试');
