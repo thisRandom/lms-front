@@ -8,6 +8,7 @@
         :allow-clear="allowClear !== false"
         :size="size"
         :field-names="{ label: 'label', value: 'value', children: 'children' }"
+        path-mode
         style="width: 100%; margin-bottom: 8px;"
     />
     <a-input
