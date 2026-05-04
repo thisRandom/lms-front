@@ -914,6 +914,11 @@ const handleDispatchSubmit = async (done: (val: boolean) => void) => {
     done(false);
     return;
   }
+  if (!dayjs(dispatchForm.estimatedArrivalTime).isAfter(dayjs(dispatchForm.estimatedDepartureTime))) {
+    Message.warning('预计到达时间必须晚于预计发车时间');
+    done(false);
+    return;
+  }
   if (!currentOrder.value) {
     Message.warning('订单信息丢失');
     done(false);

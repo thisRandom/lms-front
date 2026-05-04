@@ -303,6 +303,14 @@
       </a-spin>
       <template #footer>
         <div class="drawer-footer">
+          <a-button
+              v-if="orderDetail && orderDetail.status === 'PENDING'"
+              type="outline"
+              @click="handleEditDrawer"
+          >
+            <template #icon><icon-edit /></template>
+            编辑订单
+          </a-button>
           <a-popconfirm
               v-if="orderDetail && orderDetail.status === 'PENDING'"
               content="确定要取消该订单吗？"
@@ -342,6 +350,80 @@
       </a-form>
     </a-modal>
 
+    <!-- 编辑订单模态框 -->
+    <a-modal
+        v-model:visible="editModalVisible"
+        title="编辑订单"
+        :width="720"
+        @before-ok="handleEditSubmit"
+        @cancel="editModalVisible = false"
+        ok-text="提交"
+    >
+      <a-form :model="editForm" layout="vertical">
+        <a-divider orientation="center">发货与收货信息</a-divider>
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item field="shipperName" label="发货人" required>
+              <a-input v-model="editForm.shipperName" placeholder="请输入发货人姓名" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item field="receiverName" label="收货人" required>
+              <a-input v-model="editForm.receiverName" placeholder="请输入收货人姓名" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item field="shipperPhone" label="发货人电话" required>
+              <a-input v-model="editForm.shipperPhone" placeholder="请输入发货人电话" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item field="receiverPhone" label="收货人电话" required>
+              <a-input v-model="editForm.receiverPhone" placeholder="请输入收货人电话" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item field="shipperAddress" label="发货地址" required>
+              <a-input v-model="editForm.shipperAddress" placeholder="请输入发货地址" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item field="receiverAddress" label="收货地址" required>
+              <a-input v-model="editForm.receiverAddress" placeholder="请输入收货地址" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-divider orientation="center">货物信息</a-divider>
+        <a-row :gutter="16">
+          <a-col :span="8">
+            <a-form-item field="goodsType" label="货物类型" required>
+              <a-select v-model="editForm.goodsType" placeholder="请选择或输入" allow-create filterable>
+                <a-option value="电子产品">电子产品</a-option>
+                <a-option value="服装">服装</a-option>
+                <a-option value="食品">食品</a-option>
+                <a-option value="家具">家具</a-option>
+                <a-option value="图书">图书</a-option>
+                <a-option value="其他">其他</a-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item field="weight" label="重量（吨）" required>
+              <a-input-number v-model="editForm.weight" placeholder="请输入重量" :min="0" :precision="2" style="width: 100%" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item field="volume" label="体积（方）">
+              <a-input-number v-model="editForm.volume" placeholder="请输入体积" :min="0" :precision="2" style="width: 100%" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-form-item field="remark" label="备注">
+          <a-input v-model="editForm.remark" placeholder="请输入备注信息" :max-length="200" show-word-limit />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
     <!-- 轨迹预览 -->
     <TrajectoryPreview
         v-model:visible="trajectoryVisible"
@@ -359,13 +441,13 @@ import dayjs from 'dayjs';
 import {
   IconSend, IconCheckCircle, IconClose, IconFile,
   IconDown, IconRight, IconUser,
-  IconLocation
+  IconLocation, IconEdit
 } from '@arco-design/web-vue/es/icon';
 
-import { getOrderList, getOrderDetail, cancelOrder } from '@/api/orders';
+import { getOrderList, getOrderDetail, cancelOrder, updateOrder } from '@/api/orders';
 import { signForDispatch } from '@/api/dispatches';
 import { getDispatchLocations } from '@/api/location';
-import type { OrderListParams, OrderListItem, OrderDetail } from '@/api/orders';
+import type { OrderListParams, OrderListItem, UpdateOrderData, OrderDetail } from '@/api/orders';
 import type { LocationPoint } from '@/api/location';
 import TrajectoryPreview from '@/components/TrajectoryPreview/index.vue';
 
@@ -519,6 +601,20 @@ const orderDetail = ref<OrderDetail | null>(null);
 const signModalVisible = ref(false);
 const signForm = reactive({ signName: '' });
 const signDispatchId = ref<number | null>(null);
+const editModalVisible = ref(false);
+const editForm = reactive({
+  id: 0,
+  shipperName: '',
+  shipperPhone: '',
+  shipperAddress: '',
+  receiverName: '',
+  receiverPhone: '',
+  receiverAddress: '',
+  goodsType: '',
+  weight: 0,
+  volume: 0,
+  remark: '',
+});
 const trajectoryVisible = ref(false);
 const trajectoryPoints = ref<LocationPoint[]>([]);
 const trajectoryLoading = ref(false);
@@ -531,6 +627,55 @@ const handlePreview = async (record: OrderListItem) => {
     orderDetail.value = res.data;
   } catch {
     orderDetail.value = null;
+  }
+};
+
+const handleEditDrawer = () => {
+  if (!orderDetail.value) return;
+  editForm.id = orderDetail.value.id;
+  editForm.shipperName = orderDetail.value.shipperName;
+  editForm.shipperPhone = orderDetail.value.shipperPhone;
+  editForm.shipperAddress = orderDetail.value.shipperAddress;
+  editForm.receiverName = orderDetail.value.receiverName;
+  editForm.receiverPhone = orderDetail.value.receiverPhone;
+  editForm.receiverAddress = orderDetail.value.receiverAddress;
+  editForm.goodsType = orderDetail.value.goodsType;
+  editForm.weight = orderDetail.value.weight;
+  editForm.volume = orderDetail.value.volume;
+  editForm.remark = orderDetail.value.remark || '';
+  editModalVisible.value = true;
+};
+
+const handleEditSubmit = async (done: (val: boolean) => void) => {
+  if (!editForm.shipperName || !editForm.shipperPhone ||
+      !editForm.receiverName || !editForm.receiverPhone ||
+      !editForm.shipperAddress || !editForm.receiverAddress ||
+      !editForm.goodsType || !editForm.weight) {
+    Message.warning('请填写完整信息');
+    done(false);
+    return;
+  }
+  try {
+    const data: UpdateOrderData = {
+      shipperName: editForm.shipperName,
+      shipperPhone: editForm.shipperPhone,
+      shipperAddress: editForm.shipperAddress,
+      receiverName: editForm.receiverName,
+      receiverPhone: editForm.receiverPhone,
+      receiverAddress: editForm.receiverAddress,
+      goodsType: editForm.goodsType,
+      weight: editForm.weight,
+      volume: editForm.volume || undefined,
+      remark: editForm.remark || undefined,
+    };
+    await updateOrder(editForm.id, data);
+    Message.success('编辑订单成功');
+    editModalVisible.value = false;
+    fetchData();
+    done(true);
+  } catch {
+    Message.error('编辑订单失败');
+    done(false);
   }
 };
 
