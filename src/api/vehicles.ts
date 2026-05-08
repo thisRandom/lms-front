@@ -48,11 +48,6 @@ export function addVehicle(data: {
     return request.post<any, HttpResponse>('/vehicles', data);
 }
 
-// 更新车辆状态接口
-export function updateVehicleStatus(vehicleId: number, status: string) {
-    return request.put<any, HttpResponse>(`/vehicles/${vehicleId}/status`, { status });
-}
-
 // 编辑车辆接口
 export function updateVehicle(vehicleId: number, data: {
     plateNumber?: string;

@@ -87,6 +87,8 @@ onMounted(() => {
               allow-clear
               size="large"
               class="custom-input"
+              id="uid_input"
+              name="uname_field"
           >
             <template #prefix>
               <icon-user />
@@ -101,6 +103,8 @@ onMounted(() => {
               allow-clear
               size="large"
               class="custom-input"
+              id="pwd_box"
+              name="passwd_secret"
           >
             <template #prefix>
               <icon-lock />
@@ -108,7 +112,7 @@ onMounted(() => {
           </a-input-password>
         </a-form-item>
 
-        <a-form-item field="captcha" label="验证码" hide-asterisk>
+        <a-form-item field="captcha" label="验证码" hide-asterisk >
           <div class="captcha-wrapper">
             <a-input
                 v-model="form.captcha"
@@ -116,6 +120,8 @@ onMounted(() => {
                 allow-clear
                 size="large"
                 class="custom-input"
+                id="captcha_code"
+                name="verification_code"
             >
               <template #prefix>
                 <icon-lock />
@@ -142,6 +148,10 @@ onMounted(() => {
         >
           登 录
         </a-button>
+
+        <div class="about-link">
+          <router-link to="/about">关于我们</router-link>
+        </div>
       </a-form>
     </div>
   </div>
@@ -239,7 +249,7 @@ onMounted(() => {
       font-weight: 600;
       margin-top: 16px;
       border-radius: 8px;
-      box-shadow: 0 4px 12px var(--color-primary-light-2); /* 按钮也加点发光特效 */
+      box-shadow: 0 4px 12px var(--color-primary-light-2);
       transition: all 0.2s;
 
       &:hover {
@@ -249,6 +259,22 @@ onMounted(() => {
 
       &:active {
         transform: translateY(1px);
+      }
+    }
+
+    .about-link {
+      text-align: center;
+      margin-top: 20px;
+
+      a {
+        color: var(--color-text-3);
+        font-size: 14px;
+        text-decoration: none;
+        transition: color 0.2s;
+
+        &:hover {
+          color: var(--color-primary);
+        }
       }
     }
   }

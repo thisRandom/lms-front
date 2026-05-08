@@ -112,3 +112,12 @@ export interface OrderDetail {
 export function getOrderDetail(orderId: number) {
   return request.get<any, HttpResponse<OrderDetail>>(`/orders/${orderId}`);
 }
+
+export const GOODS_TYPE_OPTIONS = [
+  '电子产品',
+  '服装',
+  '食品',
+  '家具',
+  '图书',
+  '其他',
+] as const;

@@ -11,6 +11,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: false },
     },
     {
+        path: '/about',
+        name: 'about',
+        component: () => import('@/views/aboutView.vue'),
+        meta: { requiresAuth: false },
+    },
+    {
         path: '/',
         redirect: '/dashboard',
     },
@@ -105,6 +111,12 @@ const routes: RouteRecordRaw[] = [
         path: '/404',
         name: 'Error404',
         component: () => import('@/views/error/404.vue'),
+        meta: { requiresAuth: false },
+    },
+    {
+        path: '/403',
+        name: 'Error403',
+        component: () => import('@/views/error/403.vue'),
         meta: { requiresAuth: false },
     },
     {

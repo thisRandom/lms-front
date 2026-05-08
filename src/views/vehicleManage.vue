@@ -211,7 +211,7 @@ import { Message } from '@arco-design/web-vue';
 import { IconSearch, IconRefresh, IconEye, IconPlus, IconEdit, IconDelete } from '@arco-design/web-vue/es/icon';
 import type { TableColumnData } from '@arco-design/web-vue';
 
-import { getVehicleList, addVehicle, updateVehicleStatus, updateVehicle, deleteVehicle } from '@/api/vehicles.ts';
+import { getVehicleList, addVehicle, updateVehicle, deleteVehicle } from '@/api/vehicles.ts';
 import { getUserList } from '@/api/user.ts';
 import type { VehicleListParams, VehicleListItem } from '@/api/vehicles.ts';
 import { useUserStore } from '@/stores/user';
@@ -433,17 +433,6 @@ const handleDelete = async (record: VehicleListItem) => {
     fetchData();
   } catch {
     Message.error('删除失败');
-  }
-};
-
-const handleStatusChange = async (record: VehicleListItem, val: boolean) => {
-  const newStatus = val ? 'IDLE' : 'MAINTENANCE';
-  try {
-    await updateVehicleStatus(record.id, newStatus);
-    record.status = newStatus;
-    Message.success('更新状态成功');
-  } catch {
-    Message.error('更新状态失败');
   }
 };
 

@@ -3,7 +3,7 @@ import { useUserStore } from '@/stores/user.ts';
 import { getToken, isTokenExpired } from '@/utils/auth';
 
 // 1. 定义白名单：不需要登录就可以访问的路径
-const whiteList = ['/login', '/404'];
+const whiteList = ['/login', '/about', '/404', '/403'];
 
 export default function setupPermissionGuard(router: Router) {
     router.beforeEach(async (to, from, next) => {

@@ -184,12 +184,7 @@
           <a-col :span="8">
             <a-form-item field="goodsType" label="货物类型" required>
               <a-select v-model="addForm.goodsType" placeholder="请选择或输入" allow-create filterable>
-                <a-option value="电子产品">电子产品</a-option>
-                <a-option value="服装">服装</a-option>
-                <a-option value="食品">食品</a-option>
-                <a-option value="家具">家具</a-option>
-                <a-option value="图书">图书</a-option>
-                <a-option value="其他">其他</a-option>
+                <a-option v-for="type in GOODS_TYPE_OPTIONS" :key="type" :value="type">{{ type }}</a-option>
               </a-select>
             </a-form-item>
           </a-col>
@@ -257,12 +252,7 @@
           <a-col :span="8">
             <a-form-item field="goodsType" label="货物类型" required>
               <a-select v-model="editForm.goodsType" placeholder="请选择或输入" allow-create filterable>
-                <a-option value="电子产品">电子产品</a-option>
-                <a-option value="服装">服装</a-option>
-                <a-option value="食品">食品</a-option>
-                <a-option value="家具">家具</a-option>
-                <a-option value="图书">图书</a-option>
-                <a-option value="其他">其他</a-option>
+                <a-option v-for="type in GOODS_TYPE_OPTIONS" :key="type" :value="type">{{ type }}</a-option>
               </a-select>
             </a-form-item>
           </a-col>
@@ -333,7 +323,7 @@
               show-header
               row-key="id"
               :row-class="(record: any) => dispatchForm.vehicleId === record.id ? 'selected-row' : ''"
-              @row-click="(record: any) => { dispatchForm.vehicleId = record.id; handleVehicleChange(record.id); }"
+              @row-click="(record: any) => { dispatchForm.vehicleId = record.id; }"
           >
             <template #columns>
               <a-table-column :width="40">
@@ -512,7 +502,7 @@ import { IconSearch, IconRefresh, IconEye, IconPlus, IconEdit, IconClose, IconLi
 import type { TableColumnData } from '@arco-design/web-vue';
 import dayjs from 'dayjs';
 
-import { getOrderList, getOrderDetail, createOrder, updateOrder, cancelOrder } from '@/api/orders';
+import { getOrderList, getOrderDetail, createOrder, updateOrder, cancelOrder, GOODS_TYPE_OPTIONS } from '@/api/orders';
 import type { OrderListParams, OrderListItem, CreateOrderData, UpdateOrderData, OrderDetail } from '@/api/orders';
 import { getDispatchLocations } from '@/api/location';
 import TrajectoryPreview from '@/components/TrajectoryPreview/index.vue';
@@ -883,11 +873,6 @@ const dispatchForm = reactive({
   estimatedArrivalTime: '',
   remark: '',
 });
-
-const handleVehicleChange = (vehicleId: any) => {
-  const id = Number(vehicleId);
-  idleVehicleList.value.find((v) => v.id === id);
-};
 
 const handleDispatch = async (record: OrderListItem) => {
   currentOrder.value = record;

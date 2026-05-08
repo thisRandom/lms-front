@@ -398,12 +398,7 @@
           <a-col :span="8">
             <a-form-item field="goodsType" label="货物类型" required>
               <a-select v-model="editForm.goodsType" placeholder="请选择或输入" allow-create filterable>
-                <a-option value="电子产品">电子产品</a-option>
-                <a-option value="服装">服装</a-option>
-                <a-option value="食品">食品</a-option>
-                <a-option value="家具">家具</a-option>
-                <a-option value="图书">图书</a-option>
-                <a-option value="其他">其他</a-option>
+                <a-option v-for="type in GOODS_TYPE_OPTIONS" :key="type" :value="type">{{ type }}</a-option>
               </a-select>
             </a-form-item>
           </a-col>
@@ -444,7 +439,7 @@ import {
   IconLocation, IconEdit
 } from '@arco-design/web-vue/es/icon';
 
-import { getOrderList, getOrderDetail, cancelOrder, updateOrder } from '@/api/orders';
+import { getOrderList, getOrderDetail, cancelOrder, updateOrder, GOODS_TYPE_OPTIONS } from '@/api/orders';
 import { signForDispatch } from '@/api/dispatches';
 import { getDispatchLocations } from '@/api/location';
 import type { OrderListParams, OrderListItem, UpdateOrderData, OrderDetail } from '@/api/orders';
@@ -534,11 +529,6 @@ const getDispatchStatusColor = (status: string) => {
     CANCELLED: 'gray',
   };
   return colors[status] || 'gray';
-};
-
-const maskPhone = (phone: string) => {
-  if (!phone) return '';
-  return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
 };
 
 const goToQuickOrder = () => {
