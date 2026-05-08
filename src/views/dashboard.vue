@@ -350,7 +350,6 @@ onMounted(async () => {
         <template #icon><icon-refresh /></template>
         刷新
       </a-button>
-      <a href="/about">关于我们</a>
     </div>
 
     <a-spin :loading="loading" style="width: 100%">
