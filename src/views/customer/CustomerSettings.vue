@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { Message } from '@arco-design/web-vue'
-import { IconUser, IconPhone, IconLock } from '@arco-design/web-vue/es/icon'
+import { IconUser, IconPhone, IconLock, IconCamera } from '@arco-design/web-vue/es/icon'
 import { encryptPassword } from '@/utils/crypto'
 import { updatePassword } from '@/api/user'
+import { uploadFile } from '@/api/upload'
+import VueCropper from 'vue-cropperjs'
+import 'vue-cropperjs/node_modules/cropperjs/dist/cropper.css'
 
 const userStore = useUserStore()
+
+const avatarFullUrl = computed(() => userStore.url ? `/api/images${userStore.url}` : null)
 
 const activeTab = ref('profile')
 
@@ -52,6 +57,72 @@ const pwdForm = reactive({
 
 const pwdFormRef = ref()
 
+// === 头像上传 + 裁切 ===
+const fileInput = ref<HTMLInputElement>()
+const cropModalVisible = ref(false)
+const cropImgSrc = ref('')
+const cropperRef = ref()
+const avatarUploading = ref(false)
+
+const handleAvatarClick = () => {
+  fileInput.value?.click()
+}
+
+const handleFileChange = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    Message.warning('请选择图片文件')
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    cropImgSrc.value = event.target?.result as string
+    cropModalVisible.value = true
+  }
+  reader.readAsDataURL(file)
+  input.value = ''
+}
+
+const getCroppedBlob = (): Promise<Blob> => {
+  const canvas = cropperRef.value?.getCroppedCanvas({
+    width: 300,
+    height: 300,
+    imageSmoothingQuality: 'high',
+  })
+  if (!canvas) return Promise.reject(new Error('裁切失败'))
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob: Blob | null) => {
+        if (blob) resolve(blob)
+        else reject(new Error('压缩失败'))
+      },
+      'image/jpeg',
+      0.7
+    )
+  })
+}
+
+const handleCropConfirm = async () => {
+  avatarUploading.value = true
+  try {
+    const blob = await getCroppedBlob()
+    const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
+    await uploadFile(file)
+    await userStore.fetchUserInfo()
+    Message.success('头像更新成功')
+    cropModalVisible.value = false
+  } catch (error) {
+    console.error('头像上传失败', error)
+  } finally {
+    avatarUploading.value = false
+  }
+}
+
 const handlePwdSave = async () => {
   if (!pwdForm.oldPassword) {
     Message.warning('请输入当前密码')
@@ -93,8 +164,12 @@ const handlePwdSave = async () => {
       <!-- 侧边导航 -->
       <div class="settings-nav">
         <div class="nav-header">
-          <div class="avatar">
-            <IconUser />
+          <div class="avatar" @click="handleAvatarClick">
+            <a-avatar v-if="avatarFullUrl" :size="48" :image-url="avatarFullUrl" />
+            <IconUser v-else />
+            <div class="avatar-overlay">
+              <IconCamera :size="16" />
+            </div>
           </div>
           <div class="user-info">
             <span class="username">{{ userStore.realName || userStore.username }}</span>
@@ -196,6 +271,47 @@ const handlePwdSave = async () => {
         </div>
       </div>
     </div>
+
+    <input
+      ref="fileInput"
+      type="file"
+      accept="image/*"
+      style="display: none"
+      @change="handleFileChange"
+    />
+
+    <a-modal
+      v-model:visible="cropModalVisible"
+      title="裁切头像"
+      :width="520"
+      :mask-closable="false"
+      :footer="false"
+      @close="cropImgSrc = ''"
+    >
+      <div class="crop-container" v-if="cropModalVisible && cropImgSrc">
+        <VueCropper
+          ref="cropperRef"
+          :src="cropImgSrc"
+          :auto-crop="true"
+          :auto-crop-width="300"
+          :auto-crop-height="300"
+          :aspect-ratio="1"
+          :fixed-box="true"
+          :crop-box-resizable="false"
+          :center-box="true"
+          :can-move-box="true"
+          :can-scale="true"
+          :output-type="'png'"
+          :check-cross-origin="false"
+        />
+      </div>
+      <div class="crop-actions">
+        <a-button @click="cropModalVisible = false" :disabled="avatarUploading">取消</a-button>
+        <a-button type="primary" @click="handleCropConfirm" :loading="avatarUploading" style="margin-left: 12px">
+          确认上传
+        </a-button>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -242,6 +358,26 @@ const handlePwdSave = async () => {
   justify-content: center;
   font-size: 24px;
   color: #fff;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.avatar:hover .avatar-overlay {
+  opacity: 1;
 }
 
 .user-info {
@@ -366,5 +502,19 @@ const handlePwdSave = async () => {
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid var(--color-border);
+}
+
+.crop-container {
+  width: 100%;
+  height: 360px;
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.crop-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 </style>

@@ -9,6 +9,7 @@ export const useUserStore = defineStore('user', {
         username: undefined,
         realName: '',
         phone: '',
+        url: null,
         role: 'ERROR',
         token: getToken() || undefined,
         expireTime: 0,
@@ -36,7 +37,7 @@ export const useUserStore = defineStore('user', {
                 // 解构出后端返回的数据
                 const { token, expireTime, user } = res.data;
 
-                const { role, username, realName } = user;
+                const { role, username, realName, url } = user;
 
                 setToken(token, expireTime); // 存入 localStorage
 
@@ -46,6 +47,7 @@ export const useUserStore = defineStore('user', {
                     role: role as RoleType,
                     username,
                     realName,
+                    url: url ?? null,
                     expireTime: expireTime || 0,
                     isLoggedIn: true,
                 });
@@ -76,13 +78,14 @@ export const useUserStore = defineStore('user', {
         async fetchUserInfo() {
             try {
                 const res = await getUserInfo();
-                const { role, username, realName, phone } = res.data;
+                const { role, username, realName, phone, url } = res.data;
 
                 this.setInfo({
                     role: role as RoleType,
                     username,
                     realName,
                     phone,
+                    url: url ?? null,
                     isLoggedIn: true,
                 });
             } catch (err) {

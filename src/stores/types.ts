@@ -5,6 +5,7 @@ export interface UserState {
     realName?: string;
     phone?: string;
     role: RoleType; // 核心：存储当前用户的角色
+    url?: string | null;
     token?: string;
     expireTime?: number;
     isLoggedIn: boolean;

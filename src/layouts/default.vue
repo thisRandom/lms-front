@@ -19,6 +19,8 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
+const avatarFullUrl = computed(() => userStore.url ? `/api/images${userStore.url}` : null)
+
 const selectedKey = computed(() => {
   const path = route.path
   if (path === '/dashboard' || path === '/dashboard/driver-home') {
@@ -140,7 +142,8 @@ router.afterEach((to) => {
           </a-tooltip>
           <a-dropdown trigger="click" @select="handleDropdownSelect">
             <div class="user-info">
-              <a-avatar :style="{ backgroundColor: '#3370ff' }" :size="32">
+              <a-avatar v-if="avatarFullUrl" :size="32" :image-url="avatarFullUrl" />
+              <a-avatar v-else :style="{ backgroundColor: '#3370ff' }" :size="32">
                 <IconUser/>
               </a-avatar>
               <span class="username">{{ userStore.username || '未命名用户' }}</span>

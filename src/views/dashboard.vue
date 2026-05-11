@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { getDashboardStats } from '@/api/dashboard'
-import { IconFile, IconCheckCircle, IconSafe, IconDriveFile } from '@arco-design/web-vue/es/icon'
+import { IconFile, IconCheckCircle, IconSafe, IconDriveFile, IconRefresh } from '@arco-design/web-vue/es/icon'
 
 const router = useRouter()
 

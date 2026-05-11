@@ -38,6 +38,11 @@ service.interceptors.request.use(
 // 3. 响应拦截器 (Response Interceptor)
 service.interceptors.response.use(
     (response: AxiosResponse<HttpResponse>) => {
+        // blob 响应（如文件下载、图片请求）直接返回，不做 JSON 解析
+        if (response.config.responseType === 'blob') {
+            return response.data;
+        }
+
         const res = response.data;
 
         if (res.code !== 200) {

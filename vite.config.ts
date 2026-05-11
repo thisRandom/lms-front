@@ -23,7 +23,7 @@ export default defineConfig({
                 changeOrigin: true,
                 // 核心逻辑：路径重写（去除 '/api' 前缀）
                 rewrite: (path) => path.replace(/^\/api/, '')
-            }
+            },
         }
     }
 })

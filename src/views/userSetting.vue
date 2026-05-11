@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { Message } from '@arco-design/web-vue'
-import { IconPhone, IconUser, IconLock, IconSafe } from '@arco-design/web-vue/es/icon'
+import { IconPhone, IconUser, IconLock, IconSafe, IconCamera } from '@arco-design/web-vue/es/icon'
 import { encryptPassword } from '@/utils/crypto'
 import { updatePassword } from '@/api/user'
+import { uploadFile } from '@/api/upload'
+import VueCropper from 'vue-cropperjs'
+import 'vue-cropperjs/node_modules/cropperjs/dist/cropper.css'
 
 const userStore = useUserStore()
+
+const avatarFullUrl = computed(() => userStore.url ? `/api/images${userStore.url}` : null)
 
 // === 1. 基础信息表单逻辑 ===
 const profileFormRef = ref()
@@ -80,7 +85,6 @@ const pwdRules = {
   newPassword: [
     { required: true, message: '请输入新密码' },
     {
-      // 直接使用后端的正则表达式
       match: /^(?![a-zA-Z]+$)(?![a-z0-9]+$)(?![a-z\W_]+$)(?![A-Z0-9]+$)(?![A-Z\W_]+$)(?![0-9\W_]+$)[a-zA-Z0-9\W_]{8,16}$/,
       message: '密码需8-16位，且包含大、小写字母、数字、特殊符号中的至少三种'
     }
@@ -118,6 +122,80 @@ const handlePwdSubmit = async ({ errors }: any) => {
     pwdLoading.value = false
   }
 }
+
+// === 3. 头像上传 + 裁切逻辑 ===
+const fileInput = ref<HTMLInputElement>()
+const cropModalVisible = ref(false)
+const cropImgSrc = ref('')
+const cropperRef = ref()
+const avatarUploading = ref(false)
+
+const handleAvatarClick = () => {
+  fileInput.value?.click()
+}
+
+const handleFileChange = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    Message.warning('请选择图片文件')
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    cropImgSrc.value = event.target?.result as string
+    cropModalVisible.value = true
+  }
+  reader.readAsDataURL(file)
+
+  // 重置 input，允许重复选择同一文件
+  input.value = ''
+}
+
+/** 将裁切后的 canvas 压缩为 Blob（300x300，JPEG 0.7） */
+const getCroppedBlob = (): Promise<Blob> => {
+  const canvas = cropperRef.value?.getCroppedCanvas({
+    width: 300,
+    height: 300,
+    imageSmoothingQuality: 'high',
+  })
+  if (!canvas) return Promise.reject(new Error('裁切失败'))
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob: Blob | null) => {
+        if (blob) resolve(blob)
+        else reject(new Error('压缩失败'))
+      },
+      'image/jpeg',
+      0.7
+    )
+  })
+}
+
+const handleCropConfirm = async () => {
+  avatarUploading.value = true
+  try {
+    const blob = await getCroppedBlob()
+    const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
+
+    // 1. 上传文件（后端已自动关联头像到当前用户）
+    await uploadFile(file)
+
+    // 2. 刷新本地 store
+    await userStore.fetchUserInfo()
+
+    Message.success('头像更新成功')
+    cropModalVisible.value = false
+  } catch (error) {
+    console.error('头像上传失败', error)
+  } finally {
+    avatarUploading.value = false
+  }
+}
 </script>
 
 <template>
@@ -137,12 +215,18 @@ const handlePwdSubmit = async ({ errors }: any) => {
 
           <div class="tab-content">
             <div class="avatar-section">
-             <a-avatar :size="72" :style="{ backgroundColor: '#3370ff' }">
-               <IconUser/>
-             </a-avatar>
+              <div class="avatar-wrapper" @click="handleAvatarClick">
+                <a-avatar v-if="avatarFullUrl" :size="72" :image-url="avatarFullUrl" />
+                <a-avatar v-else :size="72" :style="{ backgroundColor: '#3370ff' }">
+                  <IconUser/>
+                </a-avatar>
+                <div class="avatar-overlay">
+                  <IconCamera :size="20" />
+                  <span>更换头像</span>
+                </div>
+              </div>
               <div class="avatar-tips">
                 <h3 class="user-name">{{ userStore.username }}</h3>
-
                 <div class="role-wrapper">
                   <span class="role-label">角色：</span>
                   <span class="role-tag">{{ userStore.role }}</span>
@@ -237,6 +321,49 @@ const handlePwdSubmit = async ({ errors }: any) => {
 
       </a-tabs>
     </a-card>
+
+    <!-- 隐藏的文件选择框 -->
+    <input
+      ref="fileInput"
+      type="file"
+      accept="image/*"
+      style="display: none"
+      @change="handleFileChange"
+    />
+
+    <!-- 裁切弹窗 -->
+    <a-modal
+      v-model:visible="cropModalVisible"
+      title="裁切头像"
+      :width="520"
+      :mask-closable="false"
+      :footer="false"
+      @close="cropImgSrc = ''"
+    >
+      <div class="crop-container" v-if="cropModalVisible && cropImgSrc">
+        <VueCropper
+          ref="cropperRef"
+          :src="cropImgSrc"
+          :auto-crop="true"
+          :auto-crop-width="300"
+          :auto-crop-height="300"
+          :aspect-ratio="1"
+          :fixed-box="true"
+          :crop-box-resizable="false"
+          :center-box="true"
+          :can-move-box="true"
+          :can-scale="true"
+          :output-type="'png'"
+          :check-cross-origin="false"
+        />
+      </div>
+      <div class="crop-actions">
+        <a-button @click="cropModalVisible = false" :disabled="avatarUploading">取消</a-button>
+        <a-button type="primary" @click="handleCropConfirm" :loading="avatarUploading" style="margin-left: 12px">
+          确认上传
+        </a-button>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -262,41 +389,31 @@ const handlePwdSubmit = async ({ errors }: any) => {
     border-radius: 8px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
     min-height: 550px;
-    padding: 10px 24px; // 给整个卡片内部增加一点呼吸感
+    padding: 10px 24px;
 
-
-    /* 优化顶部 Tabs 的样式，恢复官方的松快感 */
     :deep(.arco-tabs-nav-tab) {
       justify-content: flex-start;
     }
 
     :deep(.arco-tabs-tab) {
       font-size: 16px;
-      /* 核心修复：加大左右内边距 (padding)，让文字周围充满空气感 */
       padding: 14px 20px;
-      /* 增加外边距 (margin)，拉开两个 Tab 之间的物理距离 */
       margin-right: 16px;
       border-radius: 6px;
       transition: all 0.2s;
     }
 
-    /* 优化悬浮效果，增加一点微交互底色 */
     :deep(.arco-tabs-tab:hover) {
       background-color: var(--color-fill-2);
     }
 
-    /* 隐藏默认自带的底部灰线，让界面更干净 */
     :deep(.arco-tabs-nav::before) {
       display: none;
     }
 
-
-
     :deep(.arco-tabs-nav-tab-list) {
-      gap: 32px; // 拉开两个 Tab 之间的距离
+      gap: 32px;
     }
-
-
 
     .tab-icon {
       margin-right: 6px;
@@ -306,14 +423,42 @@ const handlePwdSubmit = async ({ errors }: any) => {
   }
 
   .tab-content {
-    padding: 32px 0 24px 0; /* 顶部留白，让内容与 Tab 分开 */
-    max-width: 500px; /* 限制表单最大宽度，防止横向拉伸过长 */
+    padding: 32px 0 24px 0;
+    max-width: 500px;
 
     .avatar-section {
       display: flex;
       align-items: center;
       gap: 20px;
       padding: 16px 0;
+
+      .avatar-wrapper {
+        position: relative;
+        cursor: pointer;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+
+        .avatar-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          color: #fff;
+          font-size: 12px;
+          opacity: 0;
+          transition: opacity 0.25s;
+          border-radius: 50%;
+        }
+
+        &:hover .avatar-overlay {
+          opacity: 1;
+        }
+      }
 
       .role-label {
         color: var(--color-text-3, #86909c);
@@ -331,15 +476,15 @@ const handlePwdSubmit = async ({ errors }: any) => {
         margin: 0;
         font-size: 20px;
         font-weight: 600;
-        color: var(--color-text-1, #1d2129); /* 兼容后备颜色 */
+        color: var(--color-text-1, #1d2129);
         line-height: 1.2;
       }
 
       .avatar-tips {
         display: flex;
-        flex-direction: column; /* 让姓名和角色上下排列 */
+        flex-direction: column;
         justify-content: center;
-        gap: 8px; /* 姓名和角色行的间距 */
+        gap: 8px;
         h3 {
           margin: 0 0 8px 0;
           font-size: 18px;
@@ -380,6 +525,20 @@ const handlePwdSubmit = async ({ errors }: any) => {
       }
     }
   }
+}
+
+.crop-container {
+  width: 100%;
+  height: 360px;
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.crop-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .anim-fade-in {
