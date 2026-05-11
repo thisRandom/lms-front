@@ -96,16 +96,16 @@
             <template #icon><icon-edit /></template>
             编辑
           </a-button>
-          <a-popconfirm
+          <a-button
               v-if="userStore.role === 'ADMIN'"
-              content="确定要删除该车辆吗？"
-              @ok="handleDelete(record)"
+              type="text"
+              size="mini"
+              status="danger"
+              @click="handleDelete(record)"
           >
-            <a-button type="text" size="mini" status="danger">
-              <template #icon><icon-delete /></template>
-              删除
-            </a-button>
-          </a-popconfirm>
+            <template #icon><icon-delete /></template>
+            删除
+          </a-button>
         </a-space>
       </template>
     </a-table>
@@ -427,6 +427,7 @@ const handleEditSubmit = async (done: (val: boolean) => void) => {
 };
 
 const handleDelete = async (record: VehicleListItem) => {
+  if (!confirm('确定要删除该车辆吗？')) return;
   try {
     await deleteVehicle(record.id);
     Message.success('删除成功');

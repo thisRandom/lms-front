@@ -144,13 +144,15 @@ onMounted(() => {
             :loading="loading"
             class="login-btn"
             size="large"
+            id="loginButton"
+            name="login"
             long
         >
           登 录
         </a-button>
 
-        <div class="about-link">
-          <router-link to="/about">关于我们</router-link>
+        <div class="about-link" >
+          <a href="/about" target="_blank" id="aboutMe" name="about-me">关于我们</a>
         </div>
       </a-form>
     </div>
