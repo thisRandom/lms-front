@@ -19,9 +19,8 @@ export default defineConfig({
         proxy: {
             // 拦截所有以 '/api' 开头的请求
             '/api': {
-                target: 'https://lms.sterblich.fun/api',
+                target: 'http://localhost:8080',
                 changeOrigin: true,
-                // 核心逻辑：路径重写（去除 '/api' 前缀）
                 rewrite: (path) => path.replace(/^\/api/, '')
             },
         }

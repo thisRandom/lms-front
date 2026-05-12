@@ -71,8 +71,6 @@ export default function setupPermissionGuard(router: Router) {
                 next(); // 匹配成功，放行！
                 return;
             } else {
-                // 核心修复：匹配失败，必须要有一个结局，把他踢到无权限页面
-                console.warn(`越权访问拦截: 需要 ${requiredRoles}, 当前是 ${userStore.role}`);
                 next('/403');
                 return;
             }
