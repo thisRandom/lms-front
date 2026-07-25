@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { useUserStore } from '@/stores/user'
@@ -27,9 +27,40 @@ const rules = {
 
 const loading = ref(false)
 
+// 自定义登录错误提示（固定位置、停留时间长，便于自动化测试定位）
+const ERROR_TIP_DURATION = 10000
+const errorTip = reactive({
+  visible: false,
+  content: '',
+})
+let errorTipTimer: ReturnType<typeof setTimeout> | null = null
+
+const showErrorTip = (content: string) => {
+  errorTip.content = content
+  errorTip.visible = true
+  if (errorTipTimer) clearTimeout(errorTipTimer)
+  errorTipTimer = setTimeout(() => {
+    errorTip.visible = false
+    errorTipTimer = null
+  }, ERROR_TIP_DURATION)
+}
+
+const hideErrorTip = () => {
+  if (errorTipTimer) {
+    clearTimeout(errorTipTimer)
+    errorTipTimer = null
+  }
+  errorTip.visible = false
+}
+
+onBeforeUnmount(() => {
+  if (errorTipTimer) clearTimeout(errorTipTimer)
+})
+
 const handleSubmit = async ({ errors, values }: any) => {
   if (errors) return
 
+  hideErrorTip()
   loading.value = true
   try {
     const loginPayload = {
@@ -44,9 +75,10 @@ const handleSubmit = async ({ errors, values }: any) => {
     const redirect = route.query.redirect as string
     router.push(redirect || '/dashboard')
 
-  } catch (error) {
+  } catch (error: any) {
     form.captcha = ''
     handleRefreshCaptcha()
+    showErrorTip(error?.message || '登录失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -72,6 +104,19 @@ onMounted(() => {
 <template>
   <div class="login-page">
     <div class="glow-bg"></div>
+
+    <!-- 自定义登录错误提示：固定顶部居中，停留 10 秒，便于自动化测试定位 -->
+    <transition name="error-tip-fade">
+      <div
+          v-if="errorTip.visible"
+          id="login-error-tip"
+          class="login-error-tip"
+          role="alert"
+      >
+        <span id="login-error-tip-text" class="login-error-tip-text">{{ errorTip.content }}</span>
+        <span id="login-error-tip-close" class="login-error-tip-close" @click="hideErrorTip">×</span>
+      </div>
+    </transition>
 
     <div class="login-card anim-slide-up">
       <div class="login-header">
@@ -280,6 +325,57 @@ onMounted(() => {
       }
     }
   }
+}
+
+/* 自定义登录错误提示框：固定顶部居中，不随页面滚动 */
+.login-error-tip {
+  position: fixed;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 280px;
+  max-width: 480px;
+  padding: 12px 16px;
+  background-color: var(--color-danger-light-1, #ffece8);
+  border: 1px solid var(--color-danger-light-3, #fdcdc5);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+  .login-error-tip-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-danger-6, #f53f3f);
+    word-break: break-all;
+  }
+
+  .login-error-tip-close {
+    flex-shrink: 0;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--color-text-3);
+    cursor: pointer;
+    transition: color 0.2s;
+
+    &:hover {
+      color: var(--color-text-1);
+    }
+  }
+}
+
+.error-tip-fade-enter-active,
+.error-tip-fade-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.error-tip-fade-enter-from,
+.error-tip-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-12px);
 }
 
 .anim-slide-up {

@@ -19,7 +19,7 @@ export default defineConfig({
         proxy: {
             // 拦截所有以 '/api' 开头的请求
             '/api': {
-                target: 'http://localhost:8090',
+                target: 'https://lms.sterblich.fun/api',
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, '')
             },

@@ -29,9 +29,9 @@ export interface UserListResponse {
   records: UserListItem[];
 }
 
-// 登录接口定义
+// 登录接口定义（silent: 不弹全局错误提示，登录页使用自定义错误提示框展示）
 export function login(data: { username: string; password: string; code: string; uuid: string }) {
-    return request.post<any, HttpResponse>('/auth/login', data);
+    return request.post<any, HttpResponse>('/auth/login', data, { silent: true });
 }
 
 // 修改密码接口（2.4）

@@ -3,6 +3,14 @@ import { Message, Modal } from '@arco-design/web-vue';
 import { getToken, clearToken } from '@/utils/auth';
 import router from '@/router';
 
+// 扩展 axios 请求配置：silent 为 true 时，响应拦截器不弹全局错误提示，
+// 错误仅通过 Promise.reject 抛出，由调用方自行决定如何展示
+declare module 'axios' {
+    export interface AxiosRequestConfig {
+        silent?: boolean;
+    }
+}
+
 // 定义后端返回的通用数据结构
 export interface HttpResponse<T = any> {
     code: number | string; // 兼容后端返回字符串的情况
@@ -46,10 +54,13 @@ service.interceptors.response.use(
         const res = response.data;
 
         if (res.code !== 200) {
-            Message.error({
-                content: res.msg || res.message || '未知业务错误',
-                duration: 5000,
-            });
+            // silent 请求（如登录页）不弹全局提示，交由调用方自行展示错误
+            if (!response.config.silent) {
+                Message.error({
+                    content: res.msg || res.message || '未知业务错误',
+                    duration: 5000,
+                });
+            }
 
             // 401: Token 过期或未登录
             if (res.code === 401) {
@@ -89,6 +100,11 @@ service.interceptors.response.use(
             }
         } else if (error.message.includes('timeout')) {
             errorMessage = '请求超时，请检查网络环境';
+        }
+
+        // silent 请求不弹全局提示，把友好文案挂到错误对象上供调用方展示
+        if (error.config?.silent) {
+            return Promise.reject(new Error(errorMessage));
         }
 
         Message.error({
