@@ -48,11 +48,11 @@
               <template #icon><icon-plus /></template>
               新增用户
             </a-button>
-            <a-button type="primary" @click="debouncedSearch">
+            <a-button id="user-search-btn" type="primary" @click="debouncedSearch">
               <template #icon><icon-search /></template>
               搜索
             </a-button>
-            <a-button @click="handleReset">
+            <a-button id="user-reset-btn" @click="handleReset">
               <template #icon><icon-refresh /></template>
               重置
             </a-button>
@@ -145,19 +145,18 @@
           <a-input v-model="addForm.phone" placeholder="请输入手机号" />
         </a-form-item>
         <a-form-item field="roleId" label="角色" required>
-          <select v-model="addForm.roleId" class="native-select">
-            <option :value="undefined" disabled>请选择角色</option>
-            <option :value="1">管理员</option>
-            <option :value="2">调度员</option>
-            <option :value="3">司机</option>
-            <option :value="4">客户</option>
-          </select>
+          <a-select v-model="addForm.roleId" placeholder="请选择角色">
+            <a-option :value="1">管理员</a-option>
+            <a-option :value="2">调度员</a-option>
+            <a-option :value="3">司机</a-option>
+            <a-option :value="4">客户</a-option>
+          </a-select>
         </a-form-item>
         <a-form-item field="status" label="状态" required>
-          <select v-model="addForm.status" class="native-select">
-            <option :value="1">启用</option>
-            <option :value="0">禁用</option>
-          </select>
+          <a-select v-model="addForm.status" placeholder="请选择状态">
+            <a-option :value="1">启用</a-option>
+            <a-option :value="0">禁用</a-option>
+          </a-select>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -178,13 +177,12 @@
           <a-input v-model="editForm.phone" placeholder="请输入手机号" />
         </a-form-item>
         <a-form-item v-if="isAdminEditing" field="roleId" label="角色" required>
-          <select v-model="editForm.roleId" class="native-select">
-            <option :value="undefined" disabled>请选择角色</option>
-            <option :value="1">管理员</option>
-            <option :value="2">调度员</option>
-            <option :value="3">司机</option>
-            <option :value="4">客户</option>
-          </select>
+          <a-select v-model="editForm.roleId" placeholder="请选择角色">
+            <a-option :value="1">管理员</a-option>
+            <a-option :value="2">调度员</a-option>
+            <a-option :value="3">司机</a-option>
+            <a-option :value="4">客户</a-option>
+          </a-select>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -458,31 +456,5 @@ onMounted(() => {
 }
 .search-form {
   margin-bottom: 20px;
-}
-.native-select {
-  width: 100%;
-  height: 32px;
-  padding: 4px 12px;
-  font-size: 14px;
-  line-height: 1.5715;
-  color: var(--color-text-1);
-  background-color: var(--color-bg-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-small);
-  outline: none;
-  transition: border-color 0.2s;
-  appearance: auto;
-}
-.native-select:focus {
-  border-color: rgb(var(--primary-6));
-  box-shadow: 0 0 0 2px rgba(var(--primary-6), 0.1);
-}
-.native-select:disabled {
-  color: var(--color-text-4);
-  background-color: var(--color-fill-2);
-  cursor: not-allowed;
-}
-.native-select:hover:not(:disabled) {
-  border-color: var(--color-border-hover);
 }
 </style>

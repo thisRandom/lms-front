@@ -82,7 +82,7 @@
             详情
           </a-button>
           <a-button
-              v-if="(userStore.role === 'ADMIN' || userStore.role === 'DISPATCHER') && record.status !== 'CANCELLED' && record.status !== 'SIGNED' && record.status !== 'ARRIVED'"
+              v-if="(userStore.role === 'ADMIN' || userStore.role === 'DISPATCHER') && record.status !== 'CANCELLED' && record.status !== 'SIGNED' && record.status !== 'ARRIVED' && record.status !== 'IN_TRANSIT'"
               type="text"
               size="mini"
               @click="handleEdit(record)"
@@ -275,7 +275,7 @@
 
     <a-modal
         v-model:visible="dispatchModalVisible"
-        title="调度 - {{ currentOrder?.orderNo }}"
+        :title="`调度 - ${currentOrder?.orderNo}`"
         :width="600"
         @before-ok="handleDispatchSubmit"
         @cancel="dispatchModalVisible = false"

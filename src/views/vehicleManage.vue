@@ -49,11 +49,11 @@
               <template #icon><icon-plus /></template>
               新增车辆
             </a-button>
-            <a-button type="primary" @click="debouncedSearch">
+            <a-button id="vehicle-search-btn" type="primary" @click="debouncedSearch">
               <template #icon><icon-search /></template>
               搜索
             </a-button>
-            <a-button @click="handleReset">
+            <a-button id="vehicle-reset-btn" @click="handleReset">
               <template #icon><icon-refresh /></template>
               重置
             </a-button>
@@ -88,7 +88,7 @@
             预览
           </a-button>
           <a-button
-              v-if="canEdit"
+              v-if="canEdit && record.status !== 'BUSY'"
               type="text"
               size="mini"
               @click="handleEdit(record)"
@@ -97,7 +97,7 @@
             编辑
           </a-button>
           <a-button
-              v-if="userStore.role === 'ADMIN'"
+              v-if="userStore.role === 'ADMIN' && record.status !== 'BUSY'"
               type="text"
               size="mini"
               status="danger"
@@ -123,12 +123,11 @@
           <a-input v-model="addForm.plateNumber" placeholder="请输入车牌号" />
         </a-form-item>
         <a-form-item field="vehicleType" label="车辆类型" required>
-          <select v-model="addForm.vehicleType" class="native-select">
-            <option value="" disabled>请选择车辆类型</option>
-            <option value="TRUCK">货车（大型）</option>
-            <option value="VAN">厢式货车（中型）</option>
-            <option value="PICKUP">皮卡（小型）</option>
-          </select>
+          <a-select v-model="addForm.vehicleType" placeholder="请选择车辆类型">
+            <a-option value="TRUCK">货车（大型）</a-option>
+            <a-option value="VAN">厢式货车（中型）</a-option>
+            <a-option value="PICKUP">皮卡（小型）</a-option>
+          </a-select>
         </a-form-item>
         <a-form-item field="loadCapacity" label="载重能力" required>
           <a-input-number v-model="addForm.loadCapacity" placeholder="请输入载重能力（吨）" :min="0" />
@@ -137,12 +136,17 @@
           <a-input-number v-model="addForm.volume" placeholder="请输入体积（方）" :min="0" />
         </a-form-item>
         <a-form-item field="driverId" label="司机" required>
-          <select v-model="addForm.driverId" class="native-select" :disabled="driverList.length === 0">
-            <option :value="undefined" disabled>请选择司机</option>
-            <option v-for="driver in driverList" :key="driver.id" :value="driver.id">
+          <a-select
+              v-model="addForm.driverId"
+              placeholder="请选择司机"
+              allow-search
+              :filter="filterDriver"
+              :disabled="driverList.length === 0"
+          >
+            <a-option v-for="driver in driverList" :key="driver.id" :value="driver.id">
               {{ driver.realName }} - {{ driver.phone }}
-            </option>
-          </select>
+            </a-option>
+          </a-select>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -244,6 +248,11 @@ const addForm = reactive({
 });
 
 const driverList = ref<{ id: number; realName: string; phone: string }[]>([]);
+
+const filterDriver = (option: any, searchText: string) => {
+  const item = option.children?.[0]?.children?.[0] || '';
+  return item.includes?.(searchText) || searchText.length === 0;
+};
 
 const editModalVisible = ref(false);
 const editForm = reactive({
@@ -453,31 +462,5 @@ onMounted(() => {
 }
 .search-form {
   margin-bottom: 20px;
-}
-.native-select {
-  width: 100%;
-  height: 32px;
-  padding: 4px 12px;
-  font-size: 14px;
-  line-height: 1.5715;
-  color: var(--color-text-1);
-  background-color: var(--color-bg-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-small);
-  outline: none;
-  transition: border-color 0.2s;
-  appearance: auto;
-}
-.native-select:focus {
-  border-color: rgb(var(--primary-6));
-  box-shadow: 0 0 0 2px rgba(var(--primary-6), 0.1);
-}
-.native-select:disabled {
-  color: var(--color-text-4);
-  background-color: var(--color-fill-2);
-  cursor: not-allowed;
-}
-.native-select:hover:not(:disabled) {
-  border-color: var(--color-border-hover);
 }
 </style>
